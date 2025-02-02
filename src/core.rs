@@ -3,8 +3,8 @@ use std::f64::consts::E;
 /// Enum for Unit Systems
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnitSystem {
-    IP,
     SI,
+    IP,
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -442,15 +442,96 @@ pub fn station_pressure(sea_level_pressure: f64, altitude: f64, t_dry_bulb: f64)
 
 /// Contains all calculated psychrometric values
 #[derive(Debug)]
-pub struct PsychrometricValues {
+pub struct MoistAir {
+    pub dry_bulb_temperature: f64, // °C (SI) or °F (IP)
     pub humidity_ratio: f64,       // kg_H₂O/kg_Air (SI) or lb_H₂O/lb_Air (IP)
-    pub wet_bulb_temp: f64,        // °C (SI) or °F (IP)
-    pub dew_point: f64,            // °C (SI) or °F (IP)
-    pub relative_humidity: f64,    // [0-1]
-    pub vapor_pressure: f64,       // Pa (SI) or Psi (IP)
-    pub moist_air_enthalpy: f64,   // J/kg (SI) or Btu/lb (IP)
-    pub moist_air_volume: f64,     // m³/kg (SI) or ft³/lb (IP)
-    pub degree_of_saturation: f64, // [unitless]
+    pub pressure: f64,             // Pa (SI) or Psi (IP)
+    pub unit: UnitSystem,          // SI or IP
+}
+
+impl Default for MoistAir {
+    fn default() -> Self {
+        MoistAir {
+            dry_bulb_temperature: 20.0,
+            humidity_ratio: 0.00735,
+            pressure: 101325.0,
+            unit: UnitSystem::SI,
+        }
+    }
+}
+
+impl MoistAir {
+    /// Create a new instance of MoistAir
+    pub fn new(
+        dry_bulb_temperature: f64,
+        humidity_ratio: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Self {
+        MoistAir {
+            dry_bulb_temperature,
+            humidity_ratio,
+            pressure,
+            unit,
+        }
+    }
+
+    /// Init from wet bulb temperature
+    pub fn new_from_wet_bulb(
+        dry_bulb_temperature: f64,
+        wet_bulb_temperature: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Self {
+        let humidity_ratio =
+            humidity_ratio_from_wet_bulb(dry_bulb_temperature, wet_bulb_temperature, pressure);
+        MoistAir {
+            dry_bulb_temperature,
+            humidity_ratio,
+            pressure,
+            unit,
+        }
+    }
+}
+
+fn humidity_ratio_from_wet_bulb(
+    t_dry_bulb: f64,
+    t_wet_bulb: f64,
+    pressure: f64,
+    unit: UnitSystem,
+) -> f64 {
+    let wsstar: f64 = saturation_humidity_ratio(t_wet_bulb, pressure);
+    let humidity_ratio: f64 = match unit {
+        UnitSystem::SI => calculate_humidity_ratio_si(t_dry_bulb, t_wet_bulb, wsstar),
+        UnitSystem::IP => calculate_humidity_ratio_ip(t_dry_bulb, t_wet_bulb, wsstar),
+    };
+    humidity_ratio.max(MIN_HUM_RATIO)
+}
+
+fn calculate_humidity_ratio_ip(t_dry_bulb: f64, t_wet_bulb: f64, wsstar: f64) -> f64 {
+    match t_wet_bulb >= FREEZING_POINT_WATER_IP {
+        true => {
+            ((1093.0 - 0.556 * t_wet_bulb) * wsstar - 0.240 * (t_dry_bulb - t_wet_bulb))
+                / (1093.0 + 0.444 * t_dry_bulb - t_wet_bulb)
+        }
+        false => {
+            ((1220.0 - 0.04 * t_wet_bulb) * wsstar - 0.240 * (t_dry_bulb - t_wet_bulb))
+                / (1220.0 + 0.444 * t_dry_bulb - 0.48 * t_wet_bulb)
+        }
+    }
+}
+
+fn calculate_humidity_ratio_si(t_dry_bulb: f64, t_wet_bulb: f64, wsstar: f64) -> f64 {
+    match t_wet_bulb >= FREEZING_POINT_WATER_SI {
+        true => {
+            ((2501. - 2.326 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
+                / (2501. + 1.86 * t_dry_bulb - 4.186 * t_wet_bulb)
+        }
+        false => {
+            ((2830. - 0.24 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
+                / (2830. + 1.86 * t_dry_bulb - 2.1 * t_wet_bulb)
+        }
+    }
 }
 
 /// Calculate psychrometric values from wet-bulb temperature
@@ -529,5 +610,87 @@ pub fn calc_psychrometrics_from_relative_humidity(
         moist_air_enthalpy: moist_air_enthalpy(t_dry_bulb, humidity_ratio),
         moist_air_volume: moist_air_volume(t_dry_bulb, humidity_ratio, pressure),
         degree_of_saturation: degree_of_saturation(t_dry_bulb, humidity_ratio, pressure),
+    }
+}
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+// Saturated Water
+////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+pub struct SaturatedWater {
+    pub t_dry_bulb: f64,
+    pub unit: UnitSystem,
+}
+
+impl Default for SaturatedWater {
+    fn default() -> Self {
+        SaturatedWater {
+            t_dry_bulb: 20.0,
+            unit: UnitSystem::SI,
+        }
+    }
+}
+
+impl SaturatedWater {
+    /// Create a new instance of SaturatedAir
+    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Self {
+        SaturatedWater { t_dry_bulb, unit }
+    }
+
+    pub fn saturation_pressure(&self) -> f64 {
+        let ln_pws = match self.unit {
+            UnitSystem::IP => {
+                if !((-138.0..392.0).contains(&self.t_dry_bulb)) {
+                    panic!("Dry bulb temperature is out of range");
+                }
+                self.ln_saturation_pressure_ip()
+            }
+            UnitSystem::SI => {
+                if !((-200.0..200.0).contains(&self.t_dry_bulb)) {
+                    panic!("Dry bulb temperature is out of range");
+                }
+                self.ln_saturation_pressure_si()
+            }
+        };
+
+        E.powf(ln_pws)
+    }
+
+    fn ln_saturation_pressure_ip(&self) -> f64 {
+        let t_r: f64 = t_rankine_from_t_fahrenheit(self.t_dry_bulb);
+        match self.t_dry_bulb >= TRIPLE_POINT_WATER_IP {
+            true => {
+                -1.0214165E+04 / t_r - 4.8932428 - 5.3765794E-03 * t_r
+                    + 1.9202377E-07 * t_r.powi(2)
+                    + 3.5575832E-10 * t_r.powi(3)
+                    - 9.0344688E-14 * t_r.powi(4)
+                    + 4.1635019 * t_r.ln()
+            }
+            false => {
+                -1.0440397E+04 / t_r - 1.1294650E+01 - 2.7022355E-02 * t_r
+                    + 1.2890360E-05 * t_r.powi(2)
+                    - 2.4780681E-09 * t_r.powi(3)
+                    + 6.5459673 * t_r.ln()
+            }
+        }
+    }
+
+    fn ln_saturation_pressure_si(&self) -> f64 {
+        let t_k: f64 = t_kelvin_from_t_celsius(self.t_dry_bulb);
+        match self.t_dry_bulb >= TRIPLE_POINT_WATER_SI {
+            true => {
+                -5.6745359E+03 / t_k + 6.3925247E+00 - 9.677843E-03 * t_k
+                    + 6.2215701E-07 * t_k.powi(2)
+                    + 2.0747825E-09 * t_k.powi(3)
+                    - 9.484024E-13 * t_k.powi(4)
+                    + 4.1635019 * t_k.ln()
+            }
+            false => {
+                -5.8002206E+03 / t_k + 1.3914993E+00 - 4.8640239E-02 * t_k
+                    + 4.1764768E-05 * t_k.powi(2)
+                    - 1.4452093E-08 * t_k.powi(3)
+                    + 6.5459673 * t_k.ln()
+            }
+        }
     }
 }
