@@ -333,8 +333,8 @@ impl MoistAir {
     /// Temperature change is estimated using:
     /// $$
     /// \begin{align}
-    /// \\Delta T &= \\frac{\\Delta h}{1.006 + 1.86W} \\quad &\\text{(SI)} \\\\
-    /// \\Delta T &= \\frac{\\Delta h}{0.240 + 0.444W} \\quad &\\text{(IP)}
+    /// \\Delta T &= \\frac{\\Delta h}{1.006 + 1.860 W} \\quad &\\text{(SI)} \\\\
+    /// \\Delta T &= \\frac{\\Delta h}{0.240 + 0.444 W} \\quad &\\text{(IP)}
     /// \end{align}
     /// $$
     /// where:
@@ -351,6 +351,44 @@ impl MoistAir {
         };
         // new dry bulb temperature
         self.t_dry_bulb += dt;
+    }
+
+    /// Calculates the state change when adding water to moist air (adiabatic humidification)
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    /// * `water` - Mass of water added \\(\\mathrm{kg_w/s}\\) (SI) or \\(\\mathrm{lb_w/h}\\) (IP)
+    ///
+    /// # Description
+    /// Calculates the temperature and humidity ratio changes when water is added to an air stream.
+    /// The process is assumed to be adiabatic (constant enthalpy).
+    ///
+    /// # Formula
+    /// Temperature change is calculated by
+    /// $$
+    /// \begin{align}
+    /// T_1 &= \frac{(1.006 + 1.860 W_0)T_0 - 2501.0 (W_1 - W_0)}{1.006 + 1.860 W_1} \quad &\text{(SI)} \\\\
+    /// T_1 &= \frac{(0.240 + 0.444 W_0)T_0 - 1061.0 (W_1 - W_0)}{0.240 + 0.444 W_1} \quad &\text{(IP)}
+    /// \end{align}
+    /// $$
+    /// where:
+    /// - \\(T_0, T_1\\) are initial and final temperatures
+    /// - \\(W_0, W_1\\) are initial and final humidity ratios
+    ///
+    /// # Note
+    /// This method modifies both temperature and humidity ratio of the instance
+    pub fn humidify(&mut self, mda: f64, water: f64) {
+        let w0 = self.humidity_ratio;
+        let w1 = self.humidity_ratio * mda + water;
+        self.t_dry_bulb = match self.unit {
+            UnitSystem::SI => {
+                ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2051.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
+            }
+            UnitSystem::IP => {
+                ((0.240 + 0.444 * w0) * self.t_dry_bulb - 1061.0 * (w1 - w0)) / (0.240 + 0.444 * w1)
+            }
+        };
+        self.humidity_ratio = w1;
     }
 }
 
