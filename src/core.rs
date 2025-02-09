@@ -1,3 +1,5 @@
+use roots::{find_root_brent, SimpleConvergency};
+
 /// Unit system for psychrometric calculations
 /// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ///
@@ -216,8 +218,8 @@ impl MoistAir {
     ///
     /// $$
     /// \\begin{align}
-    /// \\mathrm{SI~units:}\\quad h &= 1.006~t + W (2501 + 1.86~t) \\\\
-    /// \\mathrm{IP~units:}\\quad h &= 0.240~t + W (1061 + 0.444~t)
+    /// \\mathrm{SI~units:}\\quad h &= 1.006~t + W (2501.0 + 1.86~t) \\\\
+    /// \\mathrm{IP~units:}\\quad h &= 0.240~t + W (1061.0 + 0.444~t)
     /// \\end{align}
     /// $$
     ///
@@ -299,16 +301,56 @@ impl MoistAir {
     /// );
     ///
     /// // Calculate energy required to heat air to 25°C with 1.0 kg/s flow rate
-    /// let heating_energy = air.heating_to_t1(1.0, 25.0);
+    /// let heating_energy = air.heating_t1(1.0, 25.0);
     /// ```
     ///
     /// # Note
     /// This method modifies the dry-bulb temperature of the instance to the target temperature
-    pub fn heating_to_t1(&mut self, mda: f64, t1: f64) -> f64 {
+    pub fn heating_t1(&mut self, mda: f64, t1: f64) -> f64 {
         let h0 = self.specific_enthalpy();
         self.t_dry_bulb = t1;
         let h1 = self.specific_enthalpy();
         mda * (h1 - h0)
+    }
+
+    pub fn heating_dt(&mut self, mda: f64, dt: f64) -> f64 {
+        let h0 = self.specific_enthalpy();
+        self.t_dry_bulb += dt;
+        let h1 = self.specific_enthalpy();
+        mda * (h1 - h0)
+    }
+
+    /// Calculates the temperature change for a given heating energy input
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\( \\mathrm{kg/s} \\) (SI) or \\( \\mathrm{lb/h} \\) (IP)
+    /// * `q` - Heating energy input \\( \\mathrm{kW} \\) (SI) or \\( \\mathrm{Btu/h} \\) (IP)
+    ///
+    /// # Returns
+    /// Estimated new dry-bulb temperature \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
+    ///
+    /// # Formula
+    /// Temperature change is estimated using:
+    /// $$
+    /// \begin{align}
+    /// \\Delta T &= \\frac{\\Delta h}{1.006 + 1.86W} \\quad &\\text{(SI)} \\\\
+    /// \\Delta T &= \\frac{\\Delta h}{0.240 + 0.444W} \\quad &\\text{(IP)}
+    /// \end{align}
+    /// $$
+    /// where:
+    /// - \\(\\Delta h = q/\\dot{m}_{da}\\) is the specific enthalpy change
+    /// - \\(W\\) is the humidity ratio
+    ///
+    /// # Note
+    /// This provides an initial estimate and may need iteration for precise results
+    pub fn heating_q(&mut self, mda: f64, q: f64) {
+        let dh = q / mda;
+        let dt = match self.unit {
+            UnitSystem::SI => dh / (1.006 + 1.86 * self.humidity_ratio),
+            UnitSystem::IP => dh / (0.240 + 0.444 * self.humidity_ratio),
+        };
+        // new dry bulb temperature
+        self.t_dry_bulb += dt;
     }
 }
 
