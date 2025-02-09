@@ -1,20 +1,21 @@
 /// Unit system for psychrometric calculations
+/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ///
 /// # Variants
 ///
 /// * `SI` - International System of Units:
-///   - Temperature: °C (Celsius)
-///   - Pressure: Pa (Pascal)
-///   - Specific Volume: m³/kg_da
-///   - Humidity Ratio: kg_w/kg_da
-///   - Enthalpy: kJ/kg_da
+///   - Temperature: \\(^\\circ\\mathrm{C}\\) (Celsius)
+///   - Pressure: \\(\\mathrm{Pa}\\) (Pascal)
+///   - Specific Volume: \\(\\mathrm{m^3 / kg_{da}}\\)
+///   - Humidity Ratio: \\(\\mathrm{kg_w / kg_{da}}\\)
+///   - Enthalpy: \\(\\mathrm{kJ / kg_{da}}\\)
 ///
 /// * `IP` - Imperial System:
-///   - Temperature: °F (Fahrenheit)
-///   - Pressure: Psi (Pound per square inch)
-///   - Specific Volume: ft³/lb_da
-///   - Humidity Ratio: lb_w/lb_da
-///   - Enthalpy: Btu/lb_da
+///   - Temperature: \\(^\\circ\\mathrm{F}\\) (Fahrenheit)
+///   - Pressure: \\(\\mathrm{Psi}\\) (Pound per square inch)
+///   - Specific Volume: \\(\\mathrm{ft^3 / lb_{da}}\\)
+///   - Humidity Ratio: \\(\\mathrm{lb_w / lb_{da}}\\)
+///   - Enthalpy: \\(\\mathrm{Btu / lb_{da}}\\)
 ///
 /// # Example
 /// ```
@@ -112,6 +113,7 @@ fn t_fahrenheit_to_t_celsius(t_f: f64) -> f64 {
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Contains all calculated psychrometric values
+/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 #[derive(Debug)]
 pub struct MoistAir {
     t_dry_bulb: f64,     // °C (SI) or °F (IP)
@@ -134,6 +136,9 @@ impl Default for MoistAir {
 impl MoistAir {
     /// Create a new instance of MoistAir
     pub fn new(t_dry_bulb: f64, humidity_ratio: f64, pressure: f64, unit: UnitSystem) -> Self {
+        if !(0.0..=1.0).contains(&humidity_ratio) {
+            panic!("Humidity ratio must be between 0 and 1");
+        }
         MoistAir {
             t_dry_bulb,
             humidity_ratio,
@@ -158,13 +163,13 @@ impl MoistAir {
         }
     }
 
-    /// Creates a new MoistAir instance from dry-bulb temperature, relative humidity, and pressure
+    /// Creates a new MoistAir instance from dry-bulb temperature, relative humidity, and pressure \\
     /// ASHRAE Handbook - Fundamentals (2017) Ch. 1-8 SITUATION 3.
     ///
     /// # Arguments
-    /// * `t_dry_bulb` - Dry-bulb temperature [°C] (SI) or [°F] (IP)
-    /// * `relative_humidity` - Relative humidity [0-1]
-    /// * `pressure` - Atmospheric pressure [Pa] (SI) or [Psi] (IP)
+    /// * `t_dry_bulb` - Dry-bulb temperature  \\(^\\circ \\mathrm{C}\\) (SI) or  \\(^\\circ \\mathrm{F}\\) (IP)
+    /// * `relative_humidity` - Relative humidity [0.0, 1.0]
+    /// * `pressure` - Atmospheric pressure  \\(\\mathrm{Pa}\\) (SI) or  \\(\\mathrm{Psi}\\) (IP)
     /// * `unit` - Unit system (SI or IP)
     ///
     /// # Returns
@@ -187,6 +192,9 @@ impl MoistAir {
         pressure: f64,
         unit: UnitSystem,
     ) -> Self {
+        if !(0.0..=1.0).contains(&relative_humidity) {
+            panic!("Relative humidity must be between 0 and 1");
+        }
         let humidity_ratio =
             humidity_ratio_from_relative_humidity(t_dry_bulb, relative_humidity, pressure, unit);
         MoistAir {
@@ -200,23 +208,22 @@ impl MoistAir {
     /// Calculates the specific enthalpy of moist air
     ///
     /// # Returns
-    /// The specific enthalpy:
-    /// - [kJ/kg_da] for SI units
-    /// - [Btu/lb_da] for IP units
+    /// The specific enthalpy \\(h\\):
+    /// - \\( \\mathrm{kJ/kg_{da}} \\) for SI units
+    /// - \\( \\mathrm{Btu/lb_{da}} \\) for IP units
     ///
     /// # Formula
-    /// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
     ///
     /// $$
-    /// \begin{align}
-    /// \mathrm{SI~units:}\quad h &= 1.006~t + W (2501 + 1.86~t) \\\\
-    /// \mathrm{IP~units:}\quad h &= 0.240~t + W (1061 + 0.444~t)
-    /// \end{align}
+    /// \\begin{align}
+    /// \\mathrm{SI~units:}\\quad h &= 1.006~t + W (2501 + 1.86~t) \\\\
+    /// \\mathrm{IP~units:}\\quad h &= 0.240~t + W (1061 + 0.444~t)
+    /// \\end{align}
     /// $$
     ///
     /// where:
-    /// - t is the dry bulb temperature [°C] or [°F]
-    /// - W is the humidity ratio [kg_w/kg_da] or [lb_w/lb_da]
+    /// - \\(t\\) is the dry bulb temperature in \\(^\\circ \\mathrm{C}\\) or \\(^\\circ \\mathrm{F}\\)
+    /// - \\(W\\) is the humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) or \\( \\mathrm{lb_w / lb_{da}} \\)
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn specific_enthalpy(&self) -> f64 {
@@ -236,8 +243,8 @@ impl MoistAir {
     /// * `unit` - The new unit system to convert to (SI or IP)
     ///
     /// # Conversions performed
-    /// - Temperature: °F ↔ °C
-    /// - Pressure: Psi ↔ Pa
+    /// - Temperature: \\(^\\circ \\mathrm{F}\\) ↔ \\(^\\circ \\mathrm{C}\\)
+    /// - Pressure: \\(\\mathrm{Psi}\\) ↔ \\(\\mathrm{Pa}\\)
     /// - Humidity ratio remains dimensionless
     ///
     /// # Example
@@ -272,13 +279,13 @@ impl MoistAir {
     /// Calculates the heating energy required to change the dry-bulb temperature to a target temperature
     ///
     /// # Arguments
-    /// * `mda` - Mass flow rate of dry air [kg/s] (SI) or [lb/h] (IP)
-    /// * `t1` - Target dry-bulb temperature [°C] (SI) or [°F] (IP)
+    /// * `mda` - Mass flow rate of dry air \\( \\mathrm{kg/s} \\) (SI) or \\( \\mathrm{lb/h} \\) (IP)
+    /// * `t1` - Target dry-bulb temperature \\(^\\circ \\mathrm{C}\\)  (SI) or \\(^\\circ \\mathrm{F}\\)  (IP)
     ///
     /// # Returns
     /// The heating energy required:
-    /// * [kW] for SI units
-    /// * [Btu/h] for IP units
+    /// * \\(q~\\mathrm{kW}\\) for SI units
+    /// * \\(q~\\mathrm{Btu/h}\\) for IP units
     ///
     /// # Example
     /// ```
