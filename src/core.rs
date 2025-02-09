@@ -1,4 +1,27 @@
-/// Enum for Unit Systems
+/// Unit system for psychrometric calculations
+///
+/// # Variants
+///
+/// * `SI` - International System of Units:
+///   - Temperature: °C (Celsius)
+///   - Pressure: Pa (Pascal)
+///   - Specific Volume: m³/kg_da
+///   - Humidity Ratio: kg_w/kg_da
+///   - Enthalpy: kJ/kg_da
+///
+/// * `IP` - Imperial System:
+///   - Temperature: °F (Fahrenheit)
+///   - Pressure: Psi (Pound per square inch)
+///   - Specific Volume: ft³/lb_da
+///   - Humidity Ratio: lb_w/lb_da
+///   - Enthalpy: Btu/lb_da
+///
+/// # Example
+/// ```
+/// use psychroid::UnitSystem;
+///
+/// let unit = UnitSystem::SI;
+/// ```
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum UnitSystem {
     SI,
@@ -55,23 +78,33 @@ const TOLERANCE_IP: f64 = 0.001 * 9.0 / 5.0;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Convert Fahrenheit to Rankine
-pub fn t_rankine_from_t_fahrenheit(t_f: f64) -> f64 {
+fn t_rankine_from_t_fahrenheit(t_f: f64) -> f64 {
     t_f + ZERO_FAHRENHEIT_AS_RANKINE
 }
 
 /// Convert Rankine to Fahrenheit
-pub fn t_fahrenheit_from_t_rankine(t_r: f64) -> f64 {
+fn t_rankine_to_t_fahrenheit(t_r: f64) -> f64 {
     t_r - ZERO_FAHRENHEIT_AS_RANKINE
 }
 
 /// Convert Celsius to Kelvin
-pub fn t_kelvin_from_t_celsius(t_c: f64) -> f64 {
+fn t_celsius_to_t_kelvin(t_c: f64) -> f64 {
     t_c + ZERO_CELSIUS_AS_KELVIN
 }
 
 /// Convert Kelvin to Celsius
-pub fn t_celsius_from_t_kelvin(t_k: f64) -> f64 {
+fn t_kelvin_to_t_celsius(t_k: f64) -> f64 {
     t_k - ZERO_CELSIUS_AS_KELVIN
+}
+
+/// Convert Celsius to Fahrenheit
+fn t_celsius_to_t_fahrenheit(t_c: f64) -> f64 {
+    t_c * 1.8 + 32.0
+}
+
+/// Convert Fahrenheit to Celsius
+fn t_fahrenheit_to_t_celsius(t_f: f64) -> f64 {
+    (t_f - 32.0) / 1.8
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -81,10 +114,10 @@ pub fn t_celsius_from_t_kelvin(t_k: f64) -> f64 {
 /// Contains all calculated psychrometric values
 #[derive(Debug)]
 pub struct MoistAir {
-    pub t_dry_bulb: f64,     // °C (SI) or °F (IP)
-    pub humidity_ratio: f64, // kg_H₂O/kg_Air (SI) or lb_H₂O/lb_Air (IP)
-    pub pressure: f64,       // Pa (SI) or Psi (IP)
-    unit: UnitSystem,        // SI or IP
+    t_dry_bulb: f64,     // °C (SI) or °F (IP)
+    humidity_ratio: f64, // kg_H₂O/kg_Air (SI) or lb_H₂O/lb_Air (IP)
+    pressure: f64,       // Pa (SI) or Psi (IP)
+    unit: UnitSystem,    // SI or IP
 }
 
 impl Default for MoistAir {
@@ -164,7 +197,28 @@ impl MoistAir {
         }
     }
 
-    /// Return the specific enthalpy of the moist air
+    /// Calculates the specific enthalpy of moist air
+    ///
+    /// # Returns
+    /// The specific enthalpy:
+    /// - [kJ/kg_da] for SI units
+    /// - [Btu/lb_da] for IP units
+    ///
+    /// # Formula
+    /// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+    ///
+    /// $$
+    /// \begin{align}
+    /// \mathrm{SI~units:}\quad h &= 1.006~t + W (2501 + 1.86~t) \\\\
+    /// \mathrm{IP~units:}\quad h &= 0.240~t + W (1061 + 0.444~t)
+    /// \end{align}
+    /// $$
+    ///
+    /// where:
+    /// - t is the dry bulb temperature [°C] or [°F]
+    /// - W is the humidity ratio [kg_w/kg_da] or [lb_w/lb_da]
+    ///
+    /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn specific_enthalpy(&self) -> f64 {
         match self.unit {
             UnitSystem::SI => {
@@ -174,6 +228,80 @@ impl MoistAir {
                 self.t_dry_bulb * 1.006 + self.humidity_ratio * (28.58 + 0.24 * self.t_dry_bulb)
             }
         }
+    }
+
+    /// Changes the unit system and converts all properties to the new unit system
+    ///
+    /// # Arguments
+    /// * `unit` - The new unit system to convert to (SI or IP)
+    ///
+    /// # Conversions performed
+    /// - Temperature: °F ↔ °C
+    /// - Pressure: Psi ↔ Pa
+    /// - Humidity ratio remains dimensionless
+    ///
+    /// # Example
+    /// ```
+    /// use psychroid::{MoistAir, UnitSystem};
+    ///
+    /// let mut air = MoistAir::new(
+    ///     25.0,     // 25°C
+    ///     0.007,    // humidity ratio
+    ///     101325.0, // Pa
+    ///     UnitSystem::SI
+    /// );
+    ///
+    /// // Convert to IP units
+    /// air.set_unit(UnitSystem::IP);
+    /// // Now temperature is in °F, pressure in Psi
+    /// ```
+    pub fn set_unit(&mut self, unit: UnitSystem) {
+        if self.unit != unit {
+            self.unit = unit;
+            self.t_dry_bulb = match unit {
+                UnitSystem::SI => t_fahrenheit_to_t_celsius(self.t_dry_bulb),
+                UnitSystem::IP => t_celsius_to_t_fahrenheit(self.t_dry_bulb),
+            };
+            self.pressure = match unit {
+                UnitSystem::SI => self.pressure * 6894.75729, // Psi to Pa
+                UnitSystem::IP => self.pressure / 6894.75729, // Pa to Psi
+            };
+        }
+    }
+
+    /// Calculates the heating energy required to change the dry-bulb temperature to a target temperature
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air [kg/s] (SI) or [lb/h] (IP)
+    /// * `t1` - Target dry-bulb temperature [°C] (SI) or [°F] (IP)
+    ///
+    /// # Returns
+    /// The heating energy required:
+    /// * [kW] for SI units
+    /// * [Btu/h] for IP units
+    ///
+    /// # Example
+    /// ```
+    /// use psychroid::{MoistAir, UnitSystem};
+    ///
+    /// let mut air = MoistAir::new(
+    ///     20.0,     // Initial temperature: 20°C
+    ///     0.007,    // Humidity ratio
+    ///     101325.0, // Pressure: 101.325 kPa
+    ///     UnitSystem::SI
+    /// );
+    ///
+    /// // Calculate energy required to heat air to 25°C with 1.0 kg/s flow rate
+    /// let heating_energy = air.heating_to_t1(1.0, 25.0);
+    /// ```
+    ///
+    /// # Note
+    /// This method modifies the dry-bulb temperature of the instance to the target temperature
+    pub fn heating_to_t1(&mut self, mda: f64, t1: f64) -> f64 {
+        let h0 = self.specific_enthalpy();
+        self.t_dry_bulb = t1;
+        let h1 = self.specific_enthalpy();
+        mda * (h1 - h0)
     }
 }
 
@@ -238,6 +366,7 @@ fn humidity_ratio_from_relative_humidity(
 // Thermodynamic Properties of Water at Saturation
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+#[derive(Debug)]
 pub struct SaturatedWater {
     pub t_dry_bulb: f64,
     pub unit: UnitSystem,
@@ -295,7 +424,7 @@ impl SaturatedWater {
     }
 
     fn ln_saturation_pressure_si(&self) -> f64 {
-        let t_k: f64 = t_kelvin_from_t_celsius(self.t_dry_bulb);
+        let t_k: f64 = t_celsius_to_t_kelvin(self.t_dry_bulb);
         match self.t_dry_bulb >= TRIPLE_POINT_WATER_SI {
             true => {
                 -5.6745359E+03 / t_k + 6.3925247E+00 - 9.677843E-03 * t_k
