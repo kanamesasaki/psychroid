@@ -1,7 +1,8 @@
 use crate::common::UnitSystem;
 use crate::common::{t_celsius_to_t_fahrenheit, t_fahrenheit_to_t_celsius};
 use crate::common::{FREEZING_POINT_WATER_IP, FREEZING_POINT_WATER_SI, MASS_RATIO_WATER_DRY_AIR};
-use crate::saturated_water::SaturatedWater;
+use crate::common::{R_DA_IP, R_DA_SI};
+use crate::saturated_water::{self, SaturatedWater};
 use roots::{find_root_newton_raphson, SimpleConvergency};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,6 +58,10 @@ impl MoistAir {
             pressure,
             unit,
         }
+    }
+
+    pub fn get_humidity_ratio(&self) -> f64 {
+        self.humidity_ratio
     }
 
     /// Creates a new MoistAir instance from dry-bulb temperature, relative humidity, and pressure \\
@@ -131,6 +136,46 @@ impl MoistAir {
                 self.t_dry_bulb * 1.006 + self.humidity_ratio * (28.58 + 0.24 * self.t_dry_bulb)
             }
         }
+    }
+
+    /// Calculates the relative humidity from humidity ratio and pressure
+    ///
+    /// # Returns
+    /// Relative humidity [0-1]
+    ///
+    /// # Formula
+    /// $$
+    /// \\phi = \\frac{p_w}{p_{ws}} = \\frac{p \\cdot W}{(0.621945 + W) \\cdot p_{ws}}
+    /// $$
+    /// where:
+    /// - \\(\\phi\\) is relative humidity
+    /// - \\(p_w\\) is partial pressure of water vapor
+    /// - \\(p_{ws}\\) is saturation pressure of water vapor
+    /// - \\(p\\) is total pressure
+    /// - \\(W\\) is humidity ratio
+    /// - 0.621945 is the ratio of molecular mass of water vapor to dry air
+    ///
+    /// # Example
+    /// ```
+    /// use psychroid::{MoistAir, UnitSystem};
+    ///
+    /// let air = MoistAir::new(
+    ///     25.0,     // 25°C
+    ///     0.007,    // humidity ratio
+    ///     101325.0, // Pa
+    ///     UnitSystem::SI
+    /// );
+    ///
+    /// let rh = air.relative_humidity();
+    /// assert!(rh >= 0.0 && rh <= 1.0);
+    /// ```
+    ///
+    /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
+    pub fn relative_humidity(&self) -> f64 {
+        let water_pressure =
+            self.pressure * self.humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + self.humidity_ratio);
+        let saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
+        water_pressure / saturated_water.saturation_pressure()
     }
 
     /// Changes the unit system and converts all properties to the new unit system

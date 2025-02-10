@@ -2,10 +2,10 @@
 /// U.S. Standard Atmosphere 1976, Eq (23)
 ///
 /// # Arguments
-/// * `altitude` - Altitude [m]
+/// * `altitude` - Altitude \[m\]
 ///
 /// # Returns
-/// * Temperature [°C]
+/// * Temperature \[°C\]
 /// * Returns NaN if altitude is out of valid range (0-84852m)
 ///
 /// # Example
@@ -41,10 +41,10 @@ const GAS_CONSTANT: f64 = 8.31447; // Universal gas constant [J/(mol·K)]
 /// U.S. Standard Atmosphere 1976, Eq (33a, 33b)
 ///
 /// # Arguments
-/// * `altitude` - Altitude [m]
+/// * `altitude` - Altitude \[m\]
 ///
 /// # Returns
-/// * Pressure [Pa]
+/// * Pressure \[Pa\]
 /// * Returns NaN if altitude is out of valid range (0-84852m)
 pub fn atmosphere_pressure(altitude: f64) -> f64 {
     if !(0.0..=84852.0).contains(&altitude) {
@@ -127,6 +127,7 @@ fn p6(altitude: f64) -> f64 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_atmosphere_temperature() {
@@ -145,5 +146,12 @@ mod tests {
     fn test_atmosphere_temperature_out_of_range() {
         assert!(atmosphere_temperature(-1.0).is_nan());
         assert!(atmosphere_temperature(84853.0).is_nan());
+    }
+
+    #[test]
+    fn test_atmosphere_pressure() {
+        assert_eq!(atmosphere_pressure(0.0), 101325.0);
+        assert_abs_diff_eq!(atmosphere_pressure(1000.0), 89.875E+03, epsilon = 1.0);
+        assert_abs_diff_eq!(atmosphere_pressure(11000.0), 22.632E+03, epsilon = 1.0);
     }
 }

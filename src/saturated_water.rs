@@ -159,9 +159,8 @@ impl SaturatedWater {
 
 #[cfg(test)]
 mod tests {
-    use approx::assert_abs_diff_eq;
-
     use super::*;
+    use approx::assert_abs_diff_eq;
 
     #[test]
     fn test_saturation_pressure_positive_si() {
@@ -206,5 +205,11 @@ mod tests {
 
         wsat.t_dry_bulb = -40.0;
         assert_abs_diff_eq!(wsat.saturation_pressure(), 0.01284E+03, epsilon = 0.01);
+
+        wsat.t_dry_bulb = -50.0;
+        assert_abs_diff_eq!(wsat.saturation_pressure(), 0.00394E+03, epsilon = 0.01);
+
+        wsat.t_dry_bulb = -60.0;
+        assert_abs_diff_eq!(wsat.saturation_pressure(), 0.00108E+03, epsilon = 0.01);
     }
 }
