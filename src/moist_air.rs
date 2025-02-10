@@ -1,114 +1,8 @@
-use roots::{find_root_brent, SimpleConvergency};
-
-/// Unit system for psychrometric calculations
-/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
-///
-/// # Variants
-///
-/// * `SI` - International System of Units:
-///   - Temperature: \\(^\\circ\\mathrm{C}\\) (Celsius)
-///   - Pressure: \\(\\mathrm{Pa}\\) (Pascal)
-///   - Specific Volume: \\(\\mathrm{m^3 / kg_{da}}\\)
-///   - Humidity Ratio: \\(\\mathrm{kg_w / kg_{da}}\\)
-///   - Enthalpy: \\(\\mathrm{kJ / kg_{da}}\\)
-///
-/// * `IP` - Imperial System:
-///   - Temperature: \\(^\\circ\\mathrm{F}\\) (Fahrenheit)
-///   - Pressure: \\(\\mathrm{Psi}\\) (Pound per square inch)
-///   - Specific Volume: \\(\\mathrm{ft^3 / lb_{da}}\\)
-///   - Humidity Ratio: \\(\\mathrm{lb_w / lb_{da}}\\)
-///   - Enthalpy: \\(\\mathrm{Btu / lb_{da}}\\)
-///
-/// # Example
-/// ```
-/// use psychroid::UnitSystem;
-///
-/// let unit = UnitSystem::SI;
-/// ```
-#[derive(Debug, Clone, Copy, PartialEq)]
-pub enum UnitSystem {
-    SI,
-    IP,
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Constants
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-// Zero degree Fahrenheit (°F) expressed as degree Rankine (°R).
-const ZERO_FAHRENHEIT_AS_RANKINE: f64 = 459.67;
-
-// Zero degree Celsius (°C) expressed as Kelvin (K).
-const ZERO_CELSIUS_AS_KELVIN: f64 = 273.15;
-
-// Universal gas constant for dry air (IP version) in ft∙lbf/lb_da/R.
-const R_DA_IP: f64 = 53.350;
-
-// Universal gas constant for dry air (SI version) in J/kg_da/K.
-const R_DA_SI: f64 = 287.042;
-
-// Ratio of molecular masses of water to dry air (non-dimension).
-const MASS_RATIO_WATER_DRY_AIR: f64 = 0.62198;
-
-// Invalid value.
-const INVALID: f64 = -99999.0;
-
-// Maximum number of iterations before exiting while loops.
-const MAX_ITER_COUNT: usize = 100;
-
-// Minimum acceptable humidity ratio used/returned by any functions.
-// Any value above 0 or below the MIN_HUM_RATIO will be reset to this value.
-const MIN_HUM_RATIO: f64 = 1e-7;
-
-// Freezing point of water in Fahrenheit.
-const FREEZING_POINT_WATER_IP: f64 = 32.0;
-
-// Freezing point of water in Celsius.
-const FREEZING_POINT_WATER_SI: f64 = 0.0;
-
-// Triple point of water in Fahrenheit.
-const TRIPLE_POINT_WATER_IP: f64 = 32.018;
-
-// Triple point of water in Celsius.
-const TRIPLE_POINT_WATER_SI: f64 = 0.01;
-
-// Tolerance for SI and IP unit.
-const TOLERANCE_SI: f64 = 0.001;
-const TOLERANCE_IP: f64 = 0.001 * 9.0 / 5.0;
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Conversion between temperature units
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/// Convert Fahrenheit to Rankine
-fn t_rankine_from_t_fahrenheit(t_f: f64) -> f64 {
-    t_f + ZERO_FAHRENHEIT_AS_RANKINE
-}
-
-/// Convert Rankine to Fahrenheit
-fn t_rankine_to_t_fahrenheit(t_r: f64) -> f64 {
-    t_r - ZERO_FAHRENHEIT_AS_RANKINE
-}
-
-/// Convert Celsius to Kelvin
-fn t_celsius_to_t_kelvin(t_c: f64) -> f64 {
-    t_c + ZERO_CELSIUS_AS_KELVIN
-}
-
-/// Convert Kelvin to Celsius
-fn t_kelvin_to_t_celsius(t_k: f64) -> f64 {
-    t_k - ZERO_CELSIUS_AS_KELVIN
-}
-
-/// Convert Celsius to Fahrenheit
-fn t_celsius_to_t_fahrenheit(t_c: f64) -> f64 {
-    t_c * 1.8 + 32.0
-}
-
-/// Convert Fahrenheit to Celsius
-fn t_fahrenheit_to_t_celsius(t_f: f64) -> f64 {
-    (t_f - 32.0) / 1.8
-}
+use crate::common::UnitSystem;
+use crate::common::{t_celsius_to_t_fahrenheit, t_fahrenheit_to_t_celsius};
+use crate::common::{FREEZING_POINT_WATER_IP, FREEZING_POINT_WATER_SI, MASS_RATIO_WATER_DRY_AIR};
+use crate::saturated_water::SaturatedWater;
+use roots::{find_root_newton_raphson, SimpleConvergency};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Moist Air
@@ -138,8 +32,8 @@ impl Default for MoistAir {
 impl MoistAir {
     /// Create a new instance of MoistAir
     pub fn new(t_dry_bulb: f64, humidity_ratio: f64, pressure: f64, unit: UnitSystem) -> Self {
-        if !(0.0..=1.0).contains(&humidity_ratio) {
-            panic!("Humidity ratio must be between 0 and 1");
+        if humidity_ratio < 0.0 {
+            panic!("Humidity ratio must be positive");
         }
         MoistAir {
             t_dry_bulb,
@@ -346,7 +240,7 @@ impl MoistAir {
     pub fn heating_q(&mut self, mda: f64, q: f64) {
         let dh = q / mda;
         let dt = match self.unit {
-            UnitSystem::SI => dh / (1.006 + 1.86 * self.humidity_ratio),
+            UnitSystem::SI => dh / (1.006 + 1.860 * self.humidity_ratio),
             UnitSystem::IP => dh / (0.240 + 0.444 * self.humidity_ratio),
         };
         // new dry bulb temperature
@@ -364,22 +258,23 @@ impl MoistAir {
     /// The process is assumed to be adiabatic (constant enthalpy).
     ///
     /// # Formula
-    /// Temperature change is calculated by
+    /// It is assumed that the process is adiabatic and the enthalpy remains constant.
+    /// Based on this assumption, the temperature after humidification is calculated by
     /// $$
     /// \begin{align}
-    /// T_1 &= \frac{(1.006 + 1.860 W_0)T_0 - 2501.0 (W_1 - W_0)}{1.006 + 1.860 W_1} \quad &\text{(SI)} \\\\
-    /// T_1 &= \frac{(0.240 + 0.444 W_0)T_0 - 1061.0 (W_1 - W_0)}{0.240 + 0.444 W_1} \quad &\text{(IP)}
+    /// T_1 &= \frac{(1.006 + 1.860~W_0)~T_0 - 2501.0 (W_1 - W_0)}{1.006 + 1.860~W_1} \quad &\text{(SI)} \\\\
+    /// T_1 &= \frac{(0.240 + 0.444~W_0)~T_0 - 1061.0 (W_1 - W_0)}{0.240 + 0.444~W_1} \quad &\text{(IP)}
     /// \end{align}
     /// $$
     /// where:
-    /// - \\(T_0, T_1\\) are initial and final temperatures
-    /// - \\(W_0, W_1\\) are initial and final humidity ratios
+    /// - \\(T_0,~T_1\\) are initial and final temperatures
+    /// - \\(W_0,~W_1\\) are initial and final humidity ratios
     ///
     /// # Note
     /// This method modifies both temperature and humidity ratio of the instance
     pub fn humidify(&mut self, mda: f64, water: f64) {
         let w0 = self.humidity_ratio;
-        let w1 = self.humidity_ratio * mda + water;
+        let w1 = self.humidity_ratio + water / mda;
         self.t_dry_bulb = match self.unit {
             UnitSystem::SI => {
                 ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2051.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
@@ -389,6 +284,34 @@ impl MoistAir {
             }
         };
         self.humidity_ratio = w1;
+    }
+
+    pub fn cooling_saturation(&mut self, mda: f64) -> f64 {
+        let mut conv = SimpleConvergency {
+            eps: 1e-9,
+            max_iter: 100,
+        };
+        let t_saturated = find_root_newton_raphson(
+            self.t_dry_bulb,
+            |t| {
+                let mut saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
+                saturated_water.t_dry_bulb = t;
+                let pws: f64 = saturated_water.saturation_pressure();
+                self.humidity_ratio * (self.pressure - pws) - MASS_RATIO_WATER_DRY_AIR * pws
+            },
+            |t| {
+                let mut saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
+                saturated_water.t_dry_bulb = t;
+                -(self.humidity_ratio + MASS_RATIO_WATER_DRY_AIR)
+                    * saturated_water.deriv_saturation_pressure()
+            },
+            &mut conv,
+        )
+        .unwrap();
+        let h0 = self.specific_enthalpy();
+        self.t_dry_bulb = t_saturated;
+        let h1 = self.specific_enthalpy();
+        mda * (h1 - h0)
     }
 }
 
@@ -405,7 +328,7 @@ fn humidity_ratio_from_t_wet_bulb(
         UnitSystem::SI => calculate_humidity_ratio_si(t_dry_bulb, t_wet_bulb, ws),
         UnitSystem::IP => calculate_humidity_ratio_ip(t_dry_bulb, t_wet_bulb, ws),
     };
-    humidity_ratio.max(MIN_HUM_RATIO)
+    humidity_ratio
 }
 
 /// ASHRAE Handbook - Fundamentals (2013) IP Ch. 1 Eq. (35) and (37)
@@ -427,11 +350,11 @@ fn calculate_humidity_ratio_si(t_dry_bulb: f64, t_wet_bulb: f64, wsstar: f64) ->
     match t_wet_bulb >= FREEZING_POINT_WATER_SI {
         true => {
             ((2501.0 - 2.326 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
-                / (2501.0 + 1.86 * t_dry_bulb - 4.186 * t_wet_bulb)
+                / (2501.0 + 1.860 * t_dry_bulb - 4.186 * t_wet_bulb)
         }
         false => {
             ((2830. - 0.24 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
-                / (2830.0 + 1.86 * t_dry_bulb - 2.1 * t_wet_bulb)
+                / (2830.0 + 1.860 * t_dry_bulb - 2.100 * t_wet_bulb)
         }
     }
 }
@@ -447,85 +370,4 @@ fn humidity_ratio_from_relative_humidity(
     let pws = water_vapor.saturation_pressure();
     let pw = relative_humidity * pws;
     MASS_RATIO_WATER_DRY_AIR * pw / (pressure - pw)
-}
-
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-// Thermodynamic Properties of Water at Saturation
-////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-#[derive(Debug)]
-pub struct SaturatedWater {
-    pub t_dry_bulb: f64,
-    pub unit: UnitSystem,
-}
-
-impl Default for SaturatedWater {
-    fn default() -> Self {
-        SaturatedWater {
-            t_dry_bulb: 20.0,
-            unit: UnitSystem::SI,
-        }
-    }
-}
-
-impl SaturatedWater {
-    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Self {
-        SaturatedWater { t_dry_bulb, unit }
-    }
-
-    pub fn saturation_pressure(&self) -> f64 {
-        let ln_pws = match self.unit {
-            UnitSystem::IP => {
-                if !((-138.0..392.0).contains(&self.t_dry_bulb)) {
-                    panic!("Dry bulb temperature is out of range");
-                }
-                self.ln_saturation_pressure_ip()
-            }
-            UnitSystem::SI => {
-                if !((-200.0..200.0).contains(&self.t_dry_bulb)) {
-                    panic!("Dry bulb temperature is out of range");
-                }
-                self.ln_saturation_pressure_si()
-            }
-        };
-        f64::exp(ln_pws)
-    }
-
-    fn ln_saturation_pressure_ip(&self) -> f64 {
-        let t_r: f64 = t_rankine_from_t_fahrenheit(self.t_dry_bulb);
-        match self.t_dry_bulb >= TRIPLE_POINT_WATER_IP {
-            true => {
-                -1.0214165E+04 / t_r - 4.8932428 - 5.3765794E-03 * t_r
-                    + 1.9202377E-07 * t_r.powi(2)
-                    + 3.5575832E-10 * t_r.powi(3)
-                    - 9.0344688E-14 * t_r.powi(4)
-                    + 4.1635019 * t_r.ln()
-            }
-            false => {
-                -1.0440397E+04 / t_r - 1.1294650E+01 - 2.7022355E-02 * t_r
-                    + 1.2890360E-05 * t_r.powi(2)
-                    - 2.4780681E-09 * t_r.powi(3)
-                    + 6.5459673 * t_r.ln()
-            }
-        }
-    }
-
-    fn ln_saturation_pressure_si(&self) -> f64 {
-        let t_k: f64 = t_celsius_to_t_kelvin(self.t_dry_bulb);
-        match self.t_dry_bulb >= TRIPLE_POINT_WATER_SI {
-            true => {
-                -5.6745359E+03 / t_k + 6.3925247E+00 - 9.677843E-03 * t_k
-                    + 6.2215701E-07 * t_k.powi(2)
-                    + 2.0747825E-09 * t_k.powi(3)
-                    - 9.484024E-13 * t_k.powi(4)
-                    + 4.1635019 * t_k.ln()
-            }
-            false => {
-                -5.8002206E+03 / t_k + 1.3914993E+00 - 4.8640239E-02 * t_k
-                    + 4.1764768E-05 * t_k.powi(2)
-                    - 1.4452093E-08 * t_k.powi(3)
-                    + 6.5459673 * t_k.ln()
-            }
-        }
-    }
 }
