@@ -44,3 +44,4 @@ yarn-error.log*
 /web/build/
 /web/dist/*
 !/web/dist/index.html
+!/web/dist/style.css

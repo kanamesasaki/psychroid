@@ -164,3 +164,55 @@ style.textContent = `
     }
 `;
 document.head.appendChild(style);
+
+// Add tooltip div
+const tooltip = d3.select('body')
+    .append('div')
+    .attr('class', 'tooltip')
+    .style('opacity', 0)
+    .style('position', 'absolute')
+    .style('background-color', 'white')
+    .style('border', '1px solid #ddd')
+    .style('padding', '10px')
+    .style('border-radius', '3px')
+    .style('pointer-events', 'none');
+
+// Update addPoint function to include hover effects
+function addPoint(temperature: number, humidityRatio: number) {
+    svg.append('circle')
+        .attr('cx', xScale(temperature))
+        .attr('cy', yScale(humidityRatio))
+        .attr('r', 4)
+        .attr('fill', 'red')
+        .attr('stroke', 'black')
+        .attr('stroke-width', 1)
+        .on('mouseover', (event) => {
+            tooltip.transition()
+                .duration(200)
+                .style('opacity', .9);
+            tooltip.html(`Temperature: ${temperature.toFixed(1)}°C<br/>` +
+                `Humidity Ratio: ${humidityRatio.toFixed(4)} kg/kg`)
+                .style('left', (event.pageX + 10) + 'px')
+                .style('top', (event.pageY - 28) + 'px');
+        })
+        .on('mouseout', () => {
+            tooltip.transition()
+                .duration(500)
+                .style('opacity', 0);
+        });
+}
+
+// Add event listener for the plot button
+document.getElementById('plot-point')?.addEventListener('click', () => {
+    const tempInput = document.getElementById('temperature') as HTMLInputElement;
+    const humidityInput = document.getElementById('humidity-ratio') as HTMLInputElement;
+
+    const temperature = parseFloat(tempInput.value);
+    const humidityRatio = parseFloat(humidityInput.value);
+
+    if (!isNaN(temperature) && !isNaN(humidityRatio)) {
+        addPoint(temperature, humidityRatio);
+    } else {
+        alert('Please enter valid numbers');
+    }
+});

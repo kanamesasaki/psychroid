@@ -1,0 +1,21 @@
+.input-container {
+    margin: 20px;
+}
+
+.input-container label {
+    margin-right: 20px;
+    display: inline-block;
+    margin-bottom: 10px;
+}
+
+.input-container input {
+    width: 100px;
+    padding: 5px;
+    border: 1px solid #ddd;
+    border-radius: 3px;
+}
+
+svg {
+    background-color: #fff;
+    margin: 20px;
+}
