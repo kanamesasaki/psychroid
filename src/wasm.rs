@@ -1,30 +1,39 @@
+use crate::chart;
 use crate::common::UnitSystem;
-use crate::moist_air::MoistAir;
 use wasm_bindgen::prelude::*;
 
-// cargo install wasm-pack
-// wasm-pack build --target web
+// wasm-pack build --target bundler
 
 #[wasm_bindgen]
-pub struct PsychroidWasm {
-    moist_air: MoistAir,
+pub struct ChartData {
+    temperatures: Vec<f64>,
+    humidity_ratios: Vec<f64>,
 }
 
 #[wasm_bindgen]
-impl PsychroidWasm {
-    #[wasm_bindgen(constructor)]
-    pub fn new(t_dry_bulb: f64, humidity_ratio: f64, pressure: f64, is_si: bool) -> Self {
-        let unit = if is_si {
-            UnitSystem::SI
-        } else {
-            UnitSystem::IP
-        };
-        let moist_air = MoistAir::new(t_dry_bulb, humidity_ratio, pressure, unit);
-        PsychroidWasm { moist_air }
+impl ChartData {
+    #[wasm_bindgen(getter)]
+    pub fn temperatures(&self) -> Vec<f64> {
+        self.temperatures.clone()
     }
 
-    #[wasm_bindgen]
-    pub fn specific_enthalpy(&self) -> f64 {
-        self.moist_air.specific_enthalpy()
+    #[wasm_bindgen(getter)]
+    pub fn humidity_ratios(&self) -> Vec<f64> {
+        self.humidity_ratios.clone()
+    }
+}
+
+#[wasm_bindgen]
+pub fn get_relative_humidity_line(phi: f64, pressure: f64, is_si: bool) -> ChartData {
+    let unit = if is_si {
+        UnitSystem::SI
+    } else {
+        UnitSystem::IP
+    };
+    let (temps, ratios) = chart::line_relative_humidity(phi, pressure, unit);
+
+    ChartData {
+        temperatures: temps,
+        humidity_ratios: ratios,
     }
 }
