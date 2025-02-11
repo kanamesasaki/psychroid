@@ -1,8 +1,7 @@
 use crate::common::UnitSystem;
 use crate::common::{t_celsius_to_t_fahrenheit, t_fahrenheit_to_t_celsius};
 use crate::common::{FREEZING_POINT_WATER_IP, FREEZING_POINT_WATER_SI, MASS_RATIO_WATER_DRY_AIR};
-use crate::common::{R_DA_IP, R_DA_SI};
-use crate::saturated_water::{self, SaturatedWater};
+use crate::saturated_water::SaturatedWater;
 use roots::{find_root_newton_raphson, SimpleConvergency};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
