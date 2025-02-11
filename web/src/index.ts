@@ -33,15 +33,31 @@ const yMin = 0;
 const yMax = d3.max(allLines, line => d3.max(line, (d: DataPoint) => d.y)) ?? 0.03;
 
 // Set up the chart dimensions
-const margin = { top: 20, right: 60, bottom: 30, left: 50 };
-const width = 800 - margin.left - margin.right;
-const height = 600 - margin.top - margin.bottom;
+// const margin = { top: 20, right: 60, bottom: 30, left: 50 };
+// const width = 800 - margin.left - margin.right;
+// const height = 600 - margin.top - margin.bottom;
+
+// Set up the chart dimensions
+function getChartDimensions() {
+    const container = document.getElementById('chart-container');
+    const width = container?.clientWidth ?? 800;
+    const height = container?.clientHeight ?? 600;
+    const margin = { top: 20, right: 60, bottom: 30, left: 50 };
+
+    return {
+        width: width - margin.left - margin.right,
+        height: height - margin.top - margin.bottom,
+        margin
+    };
+}
+
+let { width, height, margin } = getChartDimensions();
 
 // Create SVG element
-const svg = d3.select('body')
+const svg = d3.select('#chart-container')
     .append('svg')
-    .attr('width', width + margin.left + margin.right)
-    .attr('height', height + margin.top + margin.bottom)
+    .attr('width', '100%')
+    .attr('height', '100%')
     .append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
 
@@ -216,3 +232,4 @@ document.getElementById('plot-point')?.addEventListener('click', () => {
         alert('Please enter valid numbers');
     }
 });
+
