@@ -1,0 +1,35 @@
+{
+  "name": "psychroid-web",
+  "version": "1.0.0",
+  "description": "Frontend of the psychroid project",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --mode=development",
+    "start": "webpack serve --mode=development"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kanamesasaki/psychroid.git"
+  },
+  "keywords": [
+    "psychrometrics",
+    "thermal"
+  ],
+  "author": "K. Sasaki",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kanamesasaki/psychroid/issues"
+  },
+  "homepage": "https://github.com/kanamesasaki/psychroid#readme",
+  "dependencies": {
+    "d3": "^7.9.0"
+  },
+  "devDependencies": {
+    "@types/d3": "^7.4.3",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.7.3",
+    "webpack": "^5.97.1",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.0"
+  }
+}
