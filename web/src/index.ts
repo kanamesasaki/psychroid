@@ -9,6 +9,7 @@ interface DataPoint {
 
 // Create array of RH values from 0.1 to 1.0
 const rhValues = Array.from({ length: 10 }, (_, i) => (i + 1) * 0.1);
+const hValues = Array.from({ length: 11 }, (_, i) => (i - 1) * 10000);
 
 // Generate data for all RH lines
 const allLines = rhValues.map(rh => {
@@ -103,3 +104,63 @@ allLines.forEach((points, i) => {
         .attr('font-size', '10px')
         .text(`${Math.round(lastPoint.rh)}%`);
 });
+
+
+const rh100Line = allLines[allLines.length - 1]; // Get the 100% RH line data
+
+// Create a clipping path that includes the area below and to the right of RH100% line
+svg.append("defs")
+    .append("clipPath")
+    .attr("id", "grid-clip")
+    .append("path")
+    .datum([
+        // Start from top-right corner
+        { x: xMax, y: yMin },
+        // Add all points from RH100% line in reverse order
+        ...rh100Line.slice().reverse(),
+        // Complete the polygon by going around the chart edges
+        { x: xMin, y: yMin },
+        { x: xMax, y: yMin }
+    ])
+    .attr("d", d3.line<{ x: number, y: number }>()
+        .x(d => xScale(d.x))
+        .y(d => yScale(d.y))
+        .curve(d3.curveLinear) // Use linear interpolation for the closing edges
+    );
+
+// Create grid container with clip path
+const gridContainer = svg.append("g")
+    .attr("clip-path", "url(#grid-clip)");
+
+// Add vertical grid lines
+const xGrid = d3.axisBottom(xScale)
+    .tickSize(height)
+    .tickFormat(() => '')
+    .ticks(12);
+
+gridContainer.append('g')
+    .attr('class', 'grid vertical-grid')
+    .call(xGrid);
+
+// Add horizontal grid lines
+const yGrid = d3.axisRight(yScale)
+    .tickSize(width)
+    .tickFormat(() => '')
+    .ticks(10);
+
+gridContainer.append('g')
+    .attr('class', 'grid horizontal-grid')
+    .call(yGrid);
+
+// Style for grid lines
+const style = document.createElement('style');
+style.textContent = `
+    .grid line {
+        stroke: #dddddd;
+        stroke-width: 0.5;
+    }
+    .grid path {
+        stroke: none;
+    }
+`;
+document.head.appendChild(style);
