@@ -38,7 +38,7 @@ export default function Initialization({ onInitialize }: { onInitialize: (pressu
     };
 
     return (
-        <Card className="w-full">
+        <Card className="w-full mb-4">
             <CardHeader>
                 <CardTitle>Initialization</CardTitle>
                 {/* <CardDescription>Set initial state</CardDescription> */}

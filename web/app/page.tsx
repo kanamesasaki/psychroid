@@ -3,6 +3,7 @@
 import React, { use, useEffect } from "react";
 import Initialization from "../components/Initialization";
 import Chart from "../components/Chart";
+import Process from "../components/Process";
 import init, { get_relative_humidity_line } from '@/lib/psychroid';
 
 export type Point = {
@@ -100,6 +101,7 @@ const Page = () => {
         </div>
         <div className="col-span-1 md:col-span-5">
           <Initialization onInitialize={handleInitialize} />
+          <Process />
         </div>
       </div>
     </main>
