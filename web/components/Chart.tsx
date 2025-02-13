@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Point, Line, State } from '../app/page';
+import { Button } from './ui/button';
 
 interface ChartProps {
     lines: Line[];
@@ -20,6 +21,59 @@ const Chart = ({ lines, initialState }: ChartProps) => {
     const [xMax, setXMax] = useState(40);
     const [yMin, setYMin] = useState(0);
     const [yMax, setYMax] = useState(0.03);
+
+    const exportSVG = async () => {
+        const svgEl = svgRef.current;
+        if (!svgEl) return;
+        const serializer = new XMLSerializer();
+        let source = serializer.serializeToString(svgEl);
+
+        // Add missing namespaces
+        if (!source.match(/^<svg[^>]+xmlns="http:\/\/www\.w3\.org\/2000\/svg"/)) {
+            source = source.replace(/^<svg/, '<svg xmlns="http://www.w3.org/2000/svg"');
+        }
+        if (!source.match(/^<svg[^>]+"http:\/\/www\.w3\.org\/1999\/xlink"/)) {
+            source = source.replace(/^<svg/, '<svg xmlns:xlink="http://www.w3.org/1999/xlink"');
+        }
+
+        const blob = new Blob([source], { type: "image/svg+xml" });
+
+        // if File System Access API is available 
+        if ("showSaveFilePicker" in window) {
+            try {
+                const options = {
+                    suggestedName: "chart.svg",
+                    types: [
+                        {
+                            description: "SVG file",
+                            accept: { "image/svg+xml": [".svg"] },
+                        },
+                    ],
+                };
+                // @ts-ignore
+                const fileHandle = await window.showSaveFilePicker(options);
+                const writable = await fileHandle.createWritable();
+                await writable.write(blob);
+                await writable.close();
+            } catch (error: any) {
+                if (error.name === "AbortError") {
+                    console.log("File saving was cancelled");
+                } else {
+                    console.error("File saving was cancelled or failed", error);
+                }
+            }
+        } else {
+            // Fallback for browsers without File System Access API
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "chart.svg";
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    };
 
     useEffect(() => {
         if (!svgRef.current) return;
@@ -225,8 +279,8 @@ const Chart = ({ lines, initialState }: ChartProps) => {
             .attr('cx', xScale(initialState.temperature))
             .attr('cy', yScale(initialState.humidityRatio))
             .attr('r', 3)
-            .attr('fill', 'white')      // 白で塗りつぶし
-            .attr('stroke', 'black')    // 黒い枠線
+            .attr('fill', 'white')
+            .attr('stroke', 'black')
             .attr('stroke-width', 2)
             .attr('class', 'initial-state-point')
             .on('mouseover', (event) => {
@@ -249,6 +303,7 @@ const Chart = ({ lines, initialState }: ChartProps) => {
     return (
         <div className="w-full">
             <svg ref={svgRef} className="w-full h-auto"></svg>
+            <Button onClick={exportSVG} className="mb-2">Export SVG</Button>
         </div>
     );
 }
