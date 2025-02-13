@@ -1,35 +1,40 @@
 {
-  "name": "psychroid-web",
-  "version": "1.0.0",
-  "description": "Frontend of the psychroid project",
-  "main": "index.js",
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
   "scripts": {
-    "build": "webpack --mode=development",
-    "start": "webpack serve --mode=development"
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/kanamesasaki/psychroid.git"
-  },
-  "keywords": [
-    "psychrometrics",
-    "thermal"
-  ],
-  "author": "K. Sasaki",
-  "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/kanamesasaki/psychroid/issues"
-  },
-  "homepage": "https://github.com/kanamesasaki/psychroid#readme",
   "dependencies": {
-    "d3": "^7.9.0"
+    "@radix-ui/react-label": "^2.1.2",
+    "@radix-ui/react-select": "^2.1.6",
+    "@radix-ui/react-slot": "^1.1.2",
+    "@types/d3": "^7.4.3",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "d3": "^7.9.0",
+    "lucide-react": "^0.475.0",
+    "next": "15.1.7",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "tailwind-merge": "^3.0.1",
+    "tailwindcss-animate": "^1.0.7"
   },
   "devDependencies": {
-    "@types/d3": "^7.4.3",
-    "ts-loader": "^9.5.2",
-    "typescript": "^5.7.3",
-    "webpack": "^5.97.1",
-    "webpack-cli": "^6.0.1",
-    "webpack-dev-server": "^5.2.0"
+    "@eslint/eslintrc": "^3",
+    "@types/node": "^20",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@types/webpack": "^5.28.5",
+    "eslint": "^9",
+    "eslint-config-next": "15.1.7",
+    "file-loader": "^6.2.0",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
+    "typescript": "^5",
+    "wasm-loader": "^1.3.0"
   }
 }

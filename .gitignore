@@ -45,3 +45,4 @@ yarn-error.log*
 /web/dist/*
 !/web/dist/index.html
 !/web/dist/style.css
+/web/public/

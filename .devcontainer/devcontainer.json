@@ -9,7 +9,7 @@
 		"dockerfile": "../Dockerfile"
 	},
 	"mounts": [
-		"source=docs,target=/workspaces/psychroid/docs,type=volume"
+		"source=docs,target=/workspaces/psychroid/reference,type=volume"
 	],
 	"customizations": {
 		"vscode": {
