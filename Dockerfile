@@ -81,6 +81,7 @@ CMD ["sh", "-c", "cd web && npm run start"]
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add card 
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add select
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add label
+# root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add textarea
 
 # [Step1] 以下のコマンドでwasm-bindgen用の出力を生成します。ここでは Web 用に出力するため、--target web を利用します。
 # cd /workspaces/psychroid

@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import ProcessCard, { ProcessData } from "./ProcessCard";
 import { Button } from "./ui/button";
+import { SquarePlus } from "lucide-react"; // アイコン用
 
 const Process = () => {
     const [processes, setProcesses] = useState<ProcessData[]>([
@@ -31,6 +32,7 @@ const Process = () => {
             ))}
             <div className="flex justify-end">
                 <Button onClick={addProcessCard} className="text-sm px-3 py-1">
+                    <SquarePlus className="mr-1" />
                     Add Process
                 </Button>
             </div>

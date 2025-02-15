@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import * as d3 from 'd3';
 import { Point, Line, State } from '../app/page';
 import { Button } from './ui/button';
+import { Download } from "lucide-react"; // アイコン用
 
 interface ChartProps {
     lines: Line[];
@@ -93,6 +94,7 @@ const Chart = ({ lines, initialState }: ChartProps) => {
         setXMax(xMaxNew);
         setYMin(yMinNew);
         setYMax(yMaxNew);
+        console.log('XY range:', xMinNew, xMaxNew, yMinNew, yMaxNew);
 
         // Set scales based on min/max values
         const xScale = d3.scaleLinear()
@@ -303,7 +305,10 @@ const Chart = ({ lines, initialState }: ChartProps) => {
     return (
         <div className="w-full">
             <svg ref={svgRef} className="w-full h-auto"></svg>
-            <Button onClick={exportSVG} className="mb-2">Export SVG</Button>
+            <Button onClick={exportSVG} className="mb-2">
+                <Download className="mr-1" />
+                Export SVG
+            </Button>
         </div>
     );
 }
