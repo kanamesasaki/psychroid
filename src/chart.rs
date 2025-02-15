@@ -26,14 +26,15 @@ use crate::moist_air::MoistAir;
 /// ```
 pub fn line_relative_humidity(phi: f64, pressure: f64, unit: UnitSystem) -> (Vec<f64>, Vec<f64>) {
     let t_array: Vec<f64> = match unit {
-        UnitSystem::SI => (-15..=40).step_by(5).map(|x| x as f64).collect(),
-        UnitSystem::IP => (5..=104).step_by(5).map(|x| x as f64).collect(),
+        UnitSystem::SI => (-15..=40).step_by(1).map(|x| x as f64).collect(),
+        UnitSystem::IP => (5..=104).step_by(1).map(|x| x as f64).collect(),
     };
     let w_array: Vec<f64> = t_array
         .iter()
         .map(|&t_dry_bulb| {
-            let moist_air = MoistAir::from_relative_humidity(t_dry_bulb, phi, pressure, unit);
-            moist_air.get_humidity_ratio()
+            let moist_air =
+                MoistAir::from_t_dry_bulb_relative_humidity(t_dry_bulb, phi, pressure, unit);
+            moist_air.humidity_ratio()
         })
         .collect();
     (t_array, w_array)

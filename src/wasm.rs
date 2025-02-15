@@ -2,7 +2,7 @@ use crate::chart;
 use crate::common::UnitSystem;
 use wasm_bindgen::prelude::*;
 
-// wasm-pack build --target bundler
+// wasm-pack build --target web --out-dir web/lib
 
 #[wasm_bindgen]
 pub struct ChartData {

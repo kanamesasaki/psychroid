@@ -1,7 +1,7 @@
 use crate::common::UnitSystem;
 use crate::common::{t_celsius_to_t_fahrenheit, t_fahrenheit_to_t_celsius};
 use crate::common::{FREEZING_POINT_WATER_IP, FREEZING_POINT_WATER_SI, MASS_RATIO_WATER_DRY_AIR};
-use crate::saturated_water::SaturatedWater;
+use crate::saturated_water_vapor::SaturatedWaterVapor;
 use roots::{find_root_newton_raphson, SimpleConvergency};
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -15,25 +15,38 @@ pub struct MoistAir {
     t_dry_bulb: f64,     // °C (SI) or °F (IP)
     humidity_ratio: f64, // kg_H₂O/kg_Air (SI) or lb_H₂O/lb_Air (IP)
     pressure: f64,       // Pa (SI) or Psi (IP)
-    unit: UnitSystem,    // SI or IP
+    unit: UnitSystem,
 }
 
+/// Create a new instance of MoistAir with default values
 impl Default for MoistAir {
     fn default() -> Self {
+        let t_dry_bulb = 20.0;
+        let relative_humidity = 0.5;
+        let pressure = 101325.0;
+        let unit = UnitSystem::SI;
+        let humidity_ratio =
+            humidity_ratio_from_relative_humidity(t_dry_bulb, relative_humidity, pressure, unit);
         MoistAir {
-            t_dry_bulb: 20.0,
-            humidity_ratio: 0.00735,
-            pressure: 101325.0,
-            unit: UnitSystem::SI,
+            t_dry_bulb,
+            humidity_ratio,
+            pressure,
+            unit,
         }
     }
 }
 
 impl MoistAir {
-    /// Create a new instance of MoistAir
-    pub fn new(t_dry_bulb: f64, humidity_ratio: f64, pressure: f64, unit: UnitSystem) -> Self {
-        if humidity_ratio < 0.0 {
-            panic!("Humidity ratio must be positive");
+    pub fn from_t_dry_bulb_humidity_ratio(
+        t_dry_bulb: f64,
+        humidity_ratio: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Self {
+        let relative_humidity: f64 =
+            relative_humidity_from_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit);
+        if !(0.0..=1.0).contains(&relative_humidity) {
+            panic!("Relative humidity must be between 0 and 1");
         }
         MoistAir {
             t_dry_bulb,
@@ -44,7 +57,7 @@ impl MoistAir {
     }
 
     /// Init from wet bulb temperature
-    pub fn from_t_wet_bulb(
+    pub fn from_t_dry_bulb_t_wet_bulb(
         t_dry_bulb: f64,
         t_wet_bulb: f64,
         pressure: f64,
@@ -59,11 +72,7 @@ impl MoistAir {
         }
     }
 
-    pub fn get_humidity_ratio(&self) -> f64 {
-        self.humidity_ratio
-    }
-
-    /// Creates a new MoistAir instance from dry-bulb temperature, relative humidity, and pressure \\
+    /// Creates a new MoistAir instance from dry-bulb temperature and relative humidity
     /// ASHRAE Handbook - Fundamentals (2017) Ch. 1-8 SITUATION 3.
     ///
     /// # Arguments
@@ -79,14 +88,14 @@ impl MoistAir {
     /// ```
     /// use psychroid::{MoistAir, UnitSystem};
     ///
-    /// let air = MoistAir::from_relative_humidity(
+    /// let air = MoistAir::from_t_dry_bulb_relative_humidity(
     ///     25.0,     // 25°C
     ///     0.5,      // 50% RH
     ///     101325.0, // Standard atmospheric pressure
     ///     UnitSystem::SI
     /// );
     /// ```
-    pub fn from_relative_humidity(
+    pub fn from_t_dry_bulb_relative_humidity(
         t_dry_bulb: f64,
         relative_humidity: f64,
         pressure: f64,
@@ -103,6 +112,25 @@ impl MoistAir {
             pressure,
             unit,
         }
+    }
+
+    pub fn from_t_dry_bulb_t_dew_point(
+        t_dry_bulb: f64,
+        t_dew_point: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Self {
+        let humidity_ratio = humidity_ratio_from_t_dew_point(t_dew_point, pressure, unit);
+        MoistAir {
+            t_dry_bulb,
+            humidity_ratio,
+            pressure,
+            unit,
+        }
+    }
+
+    pub fn humidity_ratio(&self) -> f64 {
+        self.humidity_ratio
     }
 
     /// Calculates the specific enthalpy of moist air
@@ -127,14 +155,7 @@ impl MoistAir {
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn specific_enthalpy(&self) -> f64 {
-        match self.unit {
-            UnitSystem::SI => {
-                self.t_dry_bulb * 0.240 + self.humidity_ratio * (1061.0 + 0.444 * self.t_dry_bulb)
-            }
-            UnitSystem::IP => {
-                self.t_dry_bulb * 1.006 + self.humidity_ratio * (28.58 + 0.24 * self.t_dry_bulb)
-            }
-        }
+        specific_enthalpy_from_humidity_ratio(self.t_dry_bulb, self.humidity_ratio, self.unit)
     }
 
     /// Calculates the relative humidity from humidity ratio and pressure
@@ -171,10 +192,12 @@ impl MoistAir {
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn relative_humidity(&self) -> f64 {
-        let water_pressure =
-            self.pressure * self.humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + self.humidity_ratio);
-        let saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
-        water_pressure / saturated_water.saturation_pressure()
+        relative_humidity_from_humidity_ratio(
+            self.t_dry_bulb,
+            self.humidity_ratio,
+            self.pressure,
+            self.unit,
+        )
     }
 
     /// Changes the unit system and converts all properties to the new unit system
@@ -338,13 +361,13 @@ impl MoistAir {
         let t_saturated = find_root_newton_raphson(
             self.t_dry_bulb,
             |t| {
-                let mut saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
+                let mut saturated_water = SaturatedWaterVapor::new(self.t_dry_bulb, self.unit);
                 saturated_water.t_dry_bulb = t;
                 let pws: f64 = saturated_water.saturation_pressure();
                 self.humidity_ratio * (self.pressure - pws) - MASS_RATIO_WATER_DRY_AIR * pws
             },
             |t| {
-                let mut saturated_water = SaturatedWater::new(self.t_dry_bulb, self.unit);
+                let mut saturated_water = SaturatedWaterVapor::new(self.t_dry_bulb, self.unit);
                 saturated_water.t_dry_bulb = t;
                 -(self.humidity_ratio + MASS_RATIO_WATER_DRY_AIR)
                     * saturated_water.deriv_saturation_pressure()
@@ -359,50 +382,137 @@ impl MoistAir {
     }
 }
 
+// calculate humidity ratio from dry-bulb and wet-bulb temperatures
 fn humidity_ratio_from_t_wet_bulb(
     t_dry_bulb: f64,
     t_wet_bulb: f64,
     pressure: f64,
     unit: UnitSystem,
 ) -> f64 {
-    let saturated_water = SaturatedWater::new(t_wet_bulb, unit);
-    let pw = saturated_water.saturation_pressure();
-    let ws: f64 = MASS_RATIO_WATER_DRY_AIR * pw / (pressure - pw);
+    let saturated_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+    let saturation_pressure: f64 = saturated_water_vapor.saturation_pressure();
+    let saturation_humidity_ratio: f64 =
+        MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
     let humidity_ratio: f64 = match unit {
-        UnitSystem::SI => calculate_humidity_ratio_si(t_dry_bulb, t_wet_bulb, ws),
-        UnitSystem::IP => calculate_humidity_ratio_ip(t_dry_bulb, t_wet_bulb, ws),
+        UnitSystem::SI => {
+            humidity_ratio_from_t_wet_bulb_si(t_dry_bulb, t_wet_bulb, saturation_humidity_ratio)
+        }
+        UnitSystem::IP => {
+            humidity_ratio_from_t_wet_bulb_ip(t_dry_bulb, t_wet_bulb, saturation_humidity_ratio)
+        }
     };
     humidity_ratio
 }
 
 /// ASHRAE Handbook - Fundamentals (2013) IP Ch. 1 Eq. (35) and (37)
-fn calculate_humidity_ratio_ip(t_dry_bulb: f64, t_wet_bulb: f64, wsstar: f64) -> f64 {
+fn humidity_ratio_from_t_wet_bulb_ip(
+    t_dry_bulb: f64,
+    t_wet_bulb: f64,
+    saturation_humidity_ratio: f64,
+) -> f64 {
     match t_wet_bulb >= FREEZING_POINT_WATER_IP {
         true => {
-            ((1093.0 - 0.556 * t_wet_bulb) * wsstar - 0.240 * (t_dry_bulb - t_wet_bulb))
+            ((1093.0 - 0.556 * t_wet_bulb) * saturation_humidity_ratio
+                - 0.240 * (t_dry_bulb - t_wet_bulb))
                 / (1093.0 + 0.444 * t_dry_bulb - t_wet_bulb)
         }
         false => {
-            ((1220.0 - 0.04 * t_wet_bulb) * wsstar - 0.240 * (t_dry_bulb - t_wet_bulb))
+            ((1220.0 - 0.04 * t_wet_bulb) * saturation_humidity_ratio
+                - 0.240 * (t_dry_bulb - t_wet_bulb))
                 / (1220.0 + 0.444 * t_dry_bulb - 0.48 * t_wet_bulb)
         }
     }
 }
 
 /// ASHRAE Handbook - Fundamentals (2017) SI Ch. 1 Eq. (33) and (35)
-fn calculate_humidity_ratio_si(t_dry_bulb: f64, t_wet_bulb: f64, wsstar: f64) -> f64 {
+fn humidity_ratio_from_t_wet_bulb_si(
+    t_dry_bulb: f64,
+    t_wet_bulb: f64,
+    saturation_humidity_ratio: f64,
+) -> f64 {
     match t_wet_bulb >= FREEZING_POINT_WATER_SI {
         true => {
-            ((2501.0 - 2.326 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
+            ((2501.0 - 2.326 * t_wet_bulb) * saturation_humidity_ratio
+                - 1.006 * (t_dry_bulb - t_wet_bulb))
                 / (2501.0 + 1.860 * t_dry_bulb - 4.186 * t_wet_bulb)
         }
         false => {
-            ((2830. - 0.24 * t_wet_bulb) * wsstar - 1.006 * (t_dry_bulb - t_wet_bulb))
+            ((2830. - 0.24 * t_wet_bulb) * saturation_humidity_ratio
+                - 1.006 * (t_dry_bulb - t_wet_bulb))
                 / (2830.0 + 1.860 * t_dry_bulb - 2.100 * t_wet_bulb)
         }
     }
 }
 
+fn t_wet_bulb_from_humidity_ratio(
+    t_dry_bulb: f64,
+    humidity_ratio: f64,
+    pressure: f64,
+    unit: UnitSystem,
+) -> f64 {
+    let saturated_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+    let saturation_pressure: f64 = saturated_water_vapor.saturation_pressure();
+    let saturation_humidity_ratio: f64 =
+        MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
+    match unit {
+        UnitSystem::SI => {
+            t_wet_bulb_from_humidity_ratio_si(t_dry_bulb, humidity_ratio, saturation_humidity_ratio)
+        }
+        UnitSystem::IP => {
+            t_wet_bulb_from_humidity_ratio_ip(t_dry_bulb, humidity_ratio, saturation_humidity_ratio)
+        }
+    }
+}
+
+fn t_wet_bulb_from_humidity_ratio_si(
+    t_dry_bulb: f64,
+    humidity_ratio: f64,
+    saturation_humidity_ratio: f64,
+) -> f64 {
+    let t_wet_bulb_b = (humidity_ratio * (2830.0 + 1.860 * t_dry_bulb)
+        - 2830.0 * saturation_humidity_ratio
+        + 1.006 * t_dry_bulb)
+        / (2.1 * humidity_ratio - 0.24 * saturation_humidity_ratio + 1.006);
+    let t_wet_bulb_a = (humidity_ratio * (2501.0 + 1.860 * t_dry_bulb)
+        - 2501.0 * saturation_humidity_ratio
+        + 1.006 * t_dry_bulb)
+        / (4.186 * humidity_ratio - 2.326 * saturation_humidity_ratio + 1.006);
+    let t_wet_bulb =
+        if t_wet_bulb_a >= FREEZING_POINT_WATER_SI && t_wet_bulb_b >= FREEZING_POINT_WATER_SI {
+            t_wet_bulb_a
+        } else if t_wet_bulb_a < FREEZING_POINT_WATER_SI && t_wet_bulb_b < FREEZING_POINT_WATER_SI {
+            t_wet_bulb_b
+        } else {
+            (t_wet_bulb_a + t_wet_bulb_b) / 2.0
+        };
+    t_wet_bulb
+}
+
+fn t_wet_bulb_from_humidity_ratio_ip(
+    t_dry_bulb: f64,
+    humidity_ratio: f64,
+    saturation_humidity_ratio: f64,
+) -> f64 {
+    let t_wet_bulb_b = (humidity_ratio * (1220.0 + 0.444 * t_dry_bulb)
+        - 1220.0 * saturation_humidity_ratio
+        + 0.240 * t_dry_bulb)
+        / (0.48 * humidity_ratio - 0.04 * saturation_humidity_ratio + 0.240);
+    let t_wet_bulb_a = (humidity_ratio * (1093.0 + 0.444 * t_dry_bulb)
+        - 1093.0 * saturation_humidity_ratio
+        + 0.240 * t_dry_bulb)
+        / (0.556 * humidity_ratio - 0.556 * saturation_humidity_ratio + 0.240);
+    let t_wet_bulb =
+        if t_wet_bulb_a >= FREEZING_POINT_WATER_IP && t_wet_bulb_b >= FREEZING_POINT_WATER_IP {
+            t_wet_bulb_a
+        } else if t_wet_bulb_a < FREEZING_POINT_WATER_IP && t_wet_bulb_b < FREEZING_POINT_WATER_IP {
+            t_wet_bulb_b
+        } else {
+            (t_wet_bulb_a + t_wet_bulb_b) / 2.0
+        };
+    t_wet_bulb
+}
+
+/// Calculates the humidity ratio from dry-bulb temperature and relative humidity
 fn humidity_ratio_from_relative_humidity(
     t_dry_bulb: f64,
     relative_humidity: f64,
@@ -410,8 +520,130 @@ fn humidity_ratio_from_relative_humidity(
     unit: UnitSystem,
 ) -> f64 {
     // calculate vapor pressure from relative humidity
-    let water_vapor = SaturatedWater::new(t_dry_bulb, unit);
-    let pws = water_vapor.saturation_pressure();
+    let vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+    let pws = vapor.saturation_pressure();
     let pw = relative_humidity * pws;
     MASS_RATIO_WATER_DRY_AIR * pw / (pressure - pw)
+}
+
+fn relative_humidity_from_humidity_ratio(
+    t_dry_bulb: f64,
+    humidity_ratio: f64,
+    pressure: f64,
+    unit: UnitSystem,
+) -> f64 {
+    let water_pressure = pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
+    let saturated_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+    water_pressure / saturated_water_vapor.saturation_pressure()
+}
+
+fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: UnitSystem) -> f64 {
+    let saturation_pressure =
+        pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
+    let f = |t: f64| {
+        let saturated_water_vapor = SaturatedWaterVapor::new(t, unit);
+        saturated_water_vapor.saturation_pressure() - saturation_pressure
+    };
+    let d = |t: f64| {
+        let saturated_water_vapor = SaturatedWaterVapor::new(t, unit);
+        saturated_water_vapor.deriv_saturation_pressure()
+    };
+    let mut convergency = SimpleConvergency {
+        eps: 1e-8f64,
+        max_iter: 30,
+    };
+    let root = find_root_newton_raphson(10f64, &f, &d, &mut convergency);
+    root.unwrap()
+}
+
+fn humidity_ratio_from_t_dew_point(t_dew_point: f64, pressure: f64, unit: UnitSystem) -> f64 {
+    let saturated_water_vapor = SaturatedWaterVapor::new(t_dew_point, unit);
+    let saturation_pressure = saturated_water_vapor.saturation_pressure();
+    MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure)
+}
+
+fn specific_enthalpy_from_humidity_ratio(
+    t_dry_bulb: f64,
+    humidity_ratio: f64,
+    unit: UnitSystem,
+) -> f64 {
+    match unit {
+        UnitSystem::SI => 1.006 * t_dry_bulb + humidity_ratio * (2501.0 + 1.860 * t_dry_bulb),
+        UnitSystem::IP => 0.240 * t_dry_bulb + humidity_ratio * (1061.0 + 0.444 * t_dry_bulb),
+    }
+}
+
+fn humidity_ratio_from_specific_enthalpy(
+    t_dry_bulb: f64,
+    specific_enthalpy: f64,
+    unit: UnitSystem,
+) -> f64 {
+    match unit {
+        UnitSystem::SI => (specific_enthalpy - 1.006 * t_dry_bulb) / (2501.0 + 1.860 * t_dry_bulb),
+        UnitSystem::IP => (specific_enthalpy - 0.240 * t_dry_bulb) / (1061.0 + 0.444 * t_dry_bulb),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::moist_air;
+
+    use super::*;
+    use approx::assert_abs_diff_eq;
+    use approx::assert_relative_eq;
+
+    #[test]
+    fn test_saturated_moist_air_si() {
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(-50.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0000243, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), -50.2220, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(-20.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0006373, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), -18.5420, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(-5.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0024863, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 1.164, max_relative = 0.03);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(5.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.005425, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 18.639, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(25.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.020173, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 76.504, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(50.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.086863, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 275.353, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(85.0, 1.0, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.838105, max_relative = 0.02);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 2307.539, max_relative = 0.01);
+    }
+
+    #[test]
+    fn test_relative_humidity_humidity_ratio() {
+        let relative_humidity_array = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+        relative_humidity_array.iter().for_each(|&rh| {
+            let moist_air =
+                MoistAir::from_t_dry_bulb_relative_humidity(25.0, rh, 101325.0, UnitSystem::SI);
+            let humidity_ratio = moist_air.humidity_ratio();
+            let moist_air = MoistAir::from_t_dry_bulb_humidity_ratio(
+                25.0,
+                humidity_ratio,
+                101325.0,
+                UnitSystem::SI,
+            );
+            assert_abs_diff_eq!(moist_air.relative_humidity(), rh, epsilon = 1.0E-10);
+        });
+    }
 }
