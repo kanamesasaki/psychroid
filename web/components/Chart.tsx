@@ -8,7 +8,7 @@ import { Download } from "lucide-react"; // アイコン用
 
 interface ChartProps {
     lines: Line[];
-    initialState: State | null;
+    states: State[];
 }
 
 const width = 400;
@@ -16,7 +16,7 @@ const height = 300;
 const margin = { top: 5, right: 55, bottom: 40, left: 10 };
 
 
-const Chart = ({ lines, initialState }: ChartProps) => {
+const Chart = ({ lines, states }: ChartProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const [xMin, setXMin] = useState(0);
     const [xMax, setXMax] = useState(40);
@@ -248,9 +248,10 @@ const Chart = ({ lines, initialState }: ChartProps) => {
             );
     }, [lines]);
 
+    // Add points for each state
     useEffect(() => {
         if (!svgRef.current) return;
-        if (!initialState) return;
+        if (states.length === 0) return;
 
         const svg = d3.select(svgRef.current);
 
@@ -278,8 +279,8 @@ const Chart = ({ lines, initialState }: ChartProps) => {
         // Add circle for initial state
         svg.selectAll('.initial-state-point').remove();
         svg.append('circle')
-            .attr('cx', xScale(initialState.temperature))
-            .attr('cy', yScale(initialState.humidityRatio))
+            .attr('cx', xScale(states[0].tDryBulb))
+            .attr('cy', yScale(states[0].humidityRatio))
             .attr('r', 3)
             .attr('fill', 'white')
             .attr('stroke', 'black')
@@ -289,8 +290,8 @@ const Chart = ({ lines, initialState }: ChartProps) => {
                 tooltip.transition()
                     .duration(200)
                     .style('opacity', .9);
-                tooltip.html(`Temperature: ${initialState.temperature.toFixed(1)}°C<br/>` +
-                    `Humidity Ratio: ${initialState.humidityRatio.toFixed(4)} kg/kg`)
+                tooltip.html(`Temperature: ${states[0].tDryBulb.toFixed(1)}°C<br/>` +
+                    `Humidity Ratio: ${states[0].humidityRatio.toFixed(4)} kg/kg`)
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 28) + 'px');
             })
@@ -299,8 +300,9 @@ const Chart = ({ lines, initialState }: ChartProps) => {
                     .duration(500)
                     .style('opacity', 0);
             });
+        console.log('Initial state:', states[0]);
 
-    }, [initialState]);
+    }, [states]);
 
     return (
         <div className="w-full">

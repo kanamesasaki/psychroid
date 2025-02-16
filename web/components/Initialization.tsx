@@ -1,6 +1,7 @@
 // components/NumberInputForm.tsx
 "use client";
 
+import { InitialState } from '../app/page';
 import React, { useState } from "react";
 import { Input } from "./ui/input";
 import { Button } from "./ui/button";
@@ -22,19 +23,25 @@ import {
 } from "./ui/card";
 import { Label } from "./ui/label";
 
-export default function Initialization({ onInitialize }: { onInitialize: (pressure: number, massflow: number, temperature: number, humidity: number) => void }) {
+// onInitialize: props として渡される関数
+export default function Initialization({ onInitialize }: { onInitialize: (initialStateInput: InitialState) => void }) {
     const [pressureInput, setPressureInput] = useState<string>("101325.0");
     const [flowRateInput, setFlowRateInput] = useState<string>("1000.0");
-    const [temperatureInput, setTemperatureInput] = useState<string>("30.0");
-    const [humidityInput, setHumidityInput] = useState<string>("0.01");
+    const [inputValue1, setInputValue1] = useState<string>("30.0");
+    const [inputType2, setInputType2] = useState<string>("humidity_ratio");
+    const [inputValue2, setInputValue2] = useState<string>("0.01");
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
-        const pressure = Number(pressureInput);
-        const massflow = Number(flowRateInput);
-        const temperature = Number(temperatureInput);
-        const humidity = Number(humidityInput);
-        onInitialize(pressure, massflow, temperature, humidity);
+        const initialStateInput: InitialState = {
+            pressure: Number(pressureInput),
+            massFlow: Number(flowRateInput),
+            parameterType1: "t_dry_bulb",
+            value1: Number(inputValue1),
+            parameterType2: inputType2,
+            value2: Number(inputValue2),
+        };
+        onInitialize(initialStateInput);
     };
 
     return (
@@ -68,13 +75,13 @@ export default function Initialization({ onInitialize }: { onInitialize: (pressu
                             <Label>Dry-bulb Temperature [°C]</Label>
                             <Input
                                 type="number"
-                                value={temperatureInput}
-                                onChange={(e) => setTemperatureInput(e.target.value)}
+                                value={inputValue1}
+                                onChange={(e) => setInputValue1(e.target.value)}
                                 placeholder="30.0"
                             />
                         </div>
                         <div className="space-y-1">
-                            <Select>
+                            <Select onValueChange={setInputType2} defaultValue="humidity_ratio">
                                 <SelectTrigger className="w-full">
                                     <SelectValue placeholder="Humidity Ratio" />
                                 </SelectTrigger>
@@ -83,14 +90,14 @@ export default function Initialization({ onInitialize }: { onInitialize: (pressu
                                         <SelectLabel>Select Input Type</SelectLabel>
                                         <SelectItem value="humidity_ratio">Humidity Ratio</SelectItem>
                                         <SelectItem value="relative_humidity">Relative Humidity</SelectItem>
-                                        <SelectItem value="wet-bulb_temperature">Wet-bulb Temperature</SelectItem>
+                                        <SelectItem value="t_wet_bulb">Wet-bulb Temperature</SelectItem>
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>
                             <Input
                                 type="number"
-                                value={humidityInput}
-                                onChange={(e) => setHumidityInput(e.target.value)}
+                                value={inputValue2}
+                                onChange={(e) => setInputValue2(e.target.value)}
                                 placeholder="0.01"
                             />
                         </div>

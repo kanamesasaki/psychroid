@@ -1,10 +1,11 @@
 "use client";
 
-import React, { use, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import Initialization from "../components/Initialization";
 import Chart from "../components/Chart";
 import Process from "../components/Process";
 import Header from "../components/Header";
+import ProcessTable from "../components/StateTable";
 import init, { get_relative_humidity_line } from '@/lib/psychroid';
 
 export type Point = {
@@ -17,23 +18,52 @@ export type Line = {
   label: string;
 };
 
-export type State = {
+export type InitialState = {
   pressure: number;
   massFlow: number;
-  temperature: number;
-  humidityRatio: number;
+  parameterType1: string; // t_dry_bulb
+  value1: number;
+  parameterType2: string; // humidity_ratio, relative_humidity, t_wet_bulb, t_dew_point, enthalpy
+  value2: number;
 };
+
+export type State = {
+  tDryBulb: number;
+  humidityRatio: number;
+  tWetBulb: number;
+  tDewPoint: number;
+  relativeHumidity: number;
+  enthalpy: number;
+}
+
+export type Process = {
+  processType: string;
+  parameterType: string;
+  value: number;
+};
+
 
 const Page = () => {
   // WASM init state
   const [wasmInitialized, setWasmInitialized] = React.useState(false);
-  // Total pressure in Pa
-  const [pressure, setPressure] = React.useState(101325.0);
   // Chart lines
   const [rhLines, setRhLines] = React.useState<Line[]>([]);
   const [enthalpyLines, setEnthalpyLines] = React.useState<Line[]>([]);
   // initial state
-  const [initialState, setInitialState] = React.useState<State | null>(null);
+  const [initialState, setInitialState] = React.useState<InitialState>(
+    {
+      pressure: 101325,
+      massFlow: 10000.0,
+      parameterType1: "t_dry_bulb",
+      value1: 20.0,
+      parameterType2: "humidity_ratio",
+      value2: 0.01
+    }
+  );
+  // Process array
+  const [processes, setProcesses] = useState<Process[]>([]);
+  // State array
+  const [states, setStates] = useState<Array<State>>([]);
 
   // Load WASM module
   useEffect(() => {
@@ -50,6 +80,7 @@ const Page = () => {
     loadWasm();
   }, []);
 
+  // Get relative humidity lines using WASM module
   const getLines = (): Line[] => {
     const rhValues = Array.from({ length: 10 }, (_, i) => (i + 1) * 0.1);
     const lines: Line[] = [];
@@ -57,7 +88,7 @@ const Page = () => {
     rhValues.forEach(rh => {
       const data = get_relative_humidity_line(
         rh,       // RH value (0.1 to 1.0)
-        pressure, // Standard pressure
+        initialState.pressure, // Standard pressure
         true      // Use SI units
       );
 
@@ -75,22 +106,35 @@ const Page = () => {
     return lines;
   };
 
-  // Update rhLines whenever pressure changes
+  // Update rhLines whenever wasmInitialized or initialState changes
   useEffect(() => {
     if (wasmInitialized) {
       setRhLines(getLines());
     }
-  }, [pressure, wasmInitialized]);
+  }, [wasmInitialized, initialState]);
 
-  const handleInitialize = (pressure: number, massFlow: number, temperature: number, humidity: number) => {
-    setInitialState({
-      pressure,
-      massFlow,
-      temperature,
-      humidityRatio: humidity
-    });
+  const handleInitialize = (initialStateInput: InitialState) => {
+    setInitialState(initialStateInput);
     console.log("Initialized:", initialState);
   };
+
+  // Update states whenever initialState changes
+  useEffect(() => {
+    if (wasmInitialized) {
+      const stateArray: State[] = [];
+      const state0: State = {
+        tDryBulb: initialState.value1,
+        humidityRatio: initialState.value2,
+        tWetBulb: 0,
+        tDewPoint: 0,
+        relativeHumidity: 0,
+        enthalpy: 0
+      }
+      stateArray.push(state0);
+      setStates(stateArray);
+      console.log("States:", states);
+    }
+  }, [initialState, wasmInitialized]);
 
   return (
     // padding: 1.5rem; /* 24px */
@@ -98,7 +142,8 @@ const Page = () => {
       <Header />
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="col-span-1 md:col-span-7">
-          <Chart lines={rhLines} initialState={initialState} />
+          <Chart lines={rhLines} states={states} />
+          <ProcessTable states={states} />
         </div>
         <div className="col-span-1 md:col-span-5">
           <Initialization onInitialize={handleInitialize} />
