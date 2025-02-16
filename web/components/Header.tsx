@@ -2,11 +2,14 @@
 
 import Link from "next/link";
 import { Github } from "lucide-react"; // Icon
+import Image from "next/image"; // Next.js の Image コンポーネントをインポート
+import favicon from "@/app/favicon.ico"; // favicon.ico をインポート
 
 const Header = () => {
     return (
-        <header className="border-b px-4 py-1 mb-3 flex items-center justify-between">
-            <div>
+        <header className="border-b pl-2 pr-4 py-1 mb-3 flex items-center justify-between">
+            <div className="flex items-center">
+                <Image src={favicon} alt="Logo" width={32} height={32} className="mr-3" />
                 <Link href="/" className="text-2xl font-bold">
                     Psychroid: Psychrometric Chart Tool
                 </Link>

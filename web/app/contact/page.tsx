@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { Send } from "lucide-react"; // アイコン用
+import { Send } from "lucide-react"; // Icon
 
 const Contact = () => {
     const [formData, setFormData] = useState({
@@ -56,8 +56,8 @@ const Contact = () => {
                 <CardContent>
                     {status && (
                         <div className={`mb-4 p-4 rounded-md ${status === 'Sending...' ? 'bg-blue-50 text-blue-700' :
-                                status.startsWith('Error') ? 'bg-red-50 text-red-700' :
-                                    'bg-green-50 text-green-700'
+                            status.startsWith('Error') ? 'bg-red-50 text-red-700' :
+                                'bg-green-50 text-green-700'
                             }`}>
                             {status}
                         </div>
