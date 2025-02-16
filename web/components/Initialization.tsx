@@ -65,7 +65,7 @@ export default function Initialization({ onInitialize }: { onInitialize: (pressu
                             />
                         </div>
                         <div>
-                            <Label>Dry-bulb Temperature [℃]</Label>
+                            <Label>Dry-bulb Temperature [°C]</Label>
                             <Input
                                 type="number"
                                 value={temperatureInput}

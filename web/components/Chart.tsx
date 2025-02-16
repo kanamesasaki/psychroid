@@ -105,7 +105,7 @@ const Chart = ({ lines, initialState }: ChartProps) => {
             .domain([yMinNew, yMaxNew])
             .range([height - margin.bottom, margin.top]);
 
-        // SVGの作成
+        // SVG container
         const svg = d3.select(svgRef.current)
             .attr('viewBox', `0 0 ${width} ${height}`)
             .attr('preserveAspectRatio', 'xMidYMid meet');

@@ -4,6 +4,7 @@ import React, { use, useEffect } from "react";
 import Initialization from "../components/Initialization";
 import Chart from "../components/Chart";
 import Process from "../components/Process";
+import Header from "../components/Header";
 import init, { get_relative_humidity_line } from '@/lib/psychroid';
 
 export type Point = {
@@ -39,7 +40,7 @@ const Page = () => {
     async function loadWasm() {
       try {
         console.log("Starting WASM initialization");
-        await init(); // default export の初期化関数を呼び出す
+        await init();
         console.log("WASM initialized");
         setWasmInitialized(true);
       } catch (err) {
@@ -93,8 +94,8 @@ const Page = () => {
 
   return (
     // padding: 1.5rem; /* 24px */
-    <main className="p-6">
-      <h1 className="text-2xl font-bold mb-4">Psychrometric Chart</h1>
+    <main className="pt-2 px-6 pb-6">
+      <Header />
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="col-span-1 md:col-span-7">
           <Chart lines={rhLines} initialState={initialState} />
