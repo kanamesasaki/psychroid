@@ -104,6 +104,40 @@ const Chart = ({ lines, states }: ChartProps) => {
         // Clear SVG
         svg.selectAll('*').remove();
 
+        // Add clip path
+        svg.append('defs')
+            .append('clipPath')
+            .attr('id', 'plot-area-clip')
+            .append('rect')
+            .attr('x', margin.left)
+            .attr('y', margin.top)
+            .attr('width', width - margin.left - margin.right)
+            .attr('height', height - margin.top - margin.bottom);
+
+        const rh100Line = lines[lines.length - 1];
+        svg.append('defs')
+            .append('clipPath')
+            .attr('id', 'grid-area-clip')
+            .append('path')
+            .datum([
+                { x: xMax, y: yMax },
+                { x: xMax, y: yMin },
+                { x: xMin, y: yMin },
+                ...rh100Line.data
+            ])
+            .attr('d', d3.line<{ x: number; y: number }>()
+                .x(d => xScale(d.x))
+                .y(d => yScale(d.y))
+                .curve(d3.curveLinear));
+
+        /// グリッドを描画
+        const gridContainer = svg.append('g')
+            .attr('clip-path', 'url(#grid-area-clip)');
+
+        // プロット領域を作成
+        const plotArea = svg.append('g')
+            .attr('clip-path', 'url(#plot-area-clip)');
+
         // Add X axis
         svg.append('g')
             .attr('class', 'x-axis')
@@ -137,47 +171,59 @@ const Chart = ({ lines, states }: ChartProps) => {
             .selectAll('.tick text')
             .style('font-size', '8px');
 
-        // Create grid container with clip path
-        const gridContainer = svg.append("g")
-            .attr("clip-path", "url(#grid-clip)");
-
         // Add vertical grid lines
         const xGrid = d3.axisBottom(xScale)
-            .tickSize(height)
+            .tickSize(-(height - margin.top - margin.bottom)) // マイナスを付けて上向きに
             .tickFormat(() => '')
             .ticks(12);
 
         gridContainer.append('g')
             .attr('class', 'grid vertical-grid')
+            .attr('transform', `translate(0,${height - margin.bottom})`) // 位置調整
             .call(xGrid);
-
-        // Add minor vertical grid lines
-        const majorXTicks = xScale.ticks(12);
-        const allXTicks = xScale.ticks(60);
-        const minorXTicks = allXTicks.filter(tick => !majorXTicks.includes(tick));
-
-        gridContainer.append('g')
-            .attr('class', 'grid vertical-minor-grid')
-            .selectAll('line')
-            .data(minorXTicks)
-            .enter()
-            .append('line')
-            .attr('x1', d => xScale(d))
-            .attr('x2', d => xScale(d))
-            .attr('y1', margin.top)
-            .attr('y2', height - margin.bottom)
-            .attr('stroke', '#eeeeee')
-            .attr('stroke-width', 0.5);
 
         // Add horizontal grid lines
         const yGrid = d3.axisRight(yScale)
-            .tickSize(width)
+            .tickSize(-(width - margin.left - margin.right)) // マイナスを付けて左向きに
             .tickFormat(() => '')
             .ticks(10);
 
         gridContainer.append('g')
             .attr('class', 'grid horizontal-grid')
+            .attr('transform', `translate(${width - margin.right},0)`) // 位置調整
             .call(yGrid);
+
+        // --- Add vertical minor grid lines ---
+        const xMajorTicks = xScale.ticks(12);
+        const xMinorTicks = xScale.ticks(12 * 4).filter(t =>
+            !xMajorTicks.some(mt => Math.abs(mt - t) < 1e-6)
+        );
+
+        const xMinorAxis = d3.axisBottom(xScale)
+            .tickValues(xMinorTicks)
+            .tickSize(-(height - margin.top - margin.bottom))
+            .tickFormat(() => '');
+
+        gridContainer.append('g')
+            .attr('class', 'grid minor-vertical-grid')
+            .attr('transform', `translate(0,${height - margin.bottom})`)
+            .call(xMinorAxis);
+
+        // --- Add horizontal minor grid lines ---
+        const yMajorTicks = yScale.ticks(10);
+        const yMinorTicks = yScale.ticks(10 * 4).filter(t =>
+            !yMajorTicks.some(mt => Math.abs(mt - t) < 1e-6)
+        );
+
+        const yMinorAxis = d3.axisRight(yScale)
+            .tickValues(yMinorTicks)
+            .tickSize(-(width - margin.left - margin.right))
+            .tickFormat(() => '');
+
+        gridContainer.append('g')
+            .attr('class', 'grid minor-horizontal-grid')
+            .attr('transform', `translate(${width - margin.right},0)`)
+            .call(yMinorAxis);
 
         // Style for grid lines
         const style = document.createElement('style');
@@ -186,6 +232,11 @@ const Chart = ({ lines, states }: ChartProps) => {
                 .horizontal-grid line {
                     stroke: #aaaaaa;
                     stroke-width: 0.5;
+                }
+                .minor-vertical-grid line,
+                .minor-horizontal-grid line {
+                    stroke: #cccccc;
+                    stroke-width: 0.3;
                 }
             `;
         document.head.appendChild(style);
@@ -198,12 +249,13 @@ const Chart = ({ lines, states }: ChartProps) => {
 
         lines.forEach(lineData => {
             // Add spline path
-            svg.append('path')
+            plotArea.append('path')
                 .datum(lineData.data)
                 .attr('fill', 'none')
                 .attr('stroke', '#666666')
                 .attr('stroke-width', 0.5)
-                .attr('d', lineFunc);
+                .attr('d', lineFunc)
+                .attr('clip-path', 'url(#plot-area-clip)'); // 明示的にクリッピングを適用
 
             // Add rH labels at the end of each line
             const lastPoint = lineData.data[lineData.data.length - 1];
@@ -216,27 +268,6 @@ const Chart = ({ lines, states }: ChartProps) => {
                 .text(`${lineData.label}`);
         });
 
-        // Create a clipping path
-        const rh100Line = lines[lines.length - 1];
-        console.log(rh100Line);
-        svg.append("defs")
-            .append("clipPath")
-            .attr("id", "grid-clip")
-            .append("path")
-            .datum([
-                // Start from top-right corner
-                { x: xMax, y: yMin },
-                // Add all points from RH100% line in reverse order
-                ...rh100Line.data.slice().reverse(),
-                // Complete the polygon by going around the chart edges
-                { x: xMin, y: yMin },
-                { x: xMax, y: yMin }
-            ])
-            .attr("d", d3.line<{ x: number, y: number }>()
-                .x(d => xScale(d.x))
-                .y(d => yScale(d.y))
-                .curve(d3.curveLinear) // Use linear interpolation for the closing edges
-            );
         setChartInit(true);
     }, [lines]);
 
