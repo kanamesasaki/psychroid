@@ -3,11 +3,11 @@
 import React from "react";
 import { State } from '../app/page';
 
-interface ProcessTableProps {
+interface StateTableProps {
     states: Array<State>;
 }
 
-const ProcessTable: React.FC<ProcessTableProps> = ({ states }) => {
+const ProcessTable: React.FC<StateTableProps> = ({ states }) => {
     return (
         <div className="overflow-x-auto">
             <table className="min-w-full bg-white border border-gray-200">
@@ -25,7 +25,7 @@ const ProcessTable: React.FC<ProcessTableProps> = ({ states }) => {
                 <tbody>
                     {states.map((state, index) => (
                         <tr key={index}>
-                            <td className="px-4 py-2 border-b">{index + 1}</td>
+                            <td className="px-4 py-2 border-b">{index}</td>
                             <td className="px-4 py-2 border-b">{state.tDryBulb.toFixed(2)}</td>
                             <td className="px-4 py-2 border-b">{state.humidityRatio.toFixed(4)}</td>
                             <td className="px-4 py-2 border-b">{(state.relativeHumidity * 100).toFixed(1)}</td>

@@ -55,7 +55,7 @@ const Page = () => {
       pressure: 101325,
       massFlow: 10000.0,
       parameterType1: "t_dry_bulb",
-      value1: 20.0,
+      value1: 30.0,
       parameterType2: "humidity_ratio",
       value2: 0.01
     }
@@ -110,6 +110,7 @@ const Page = () => {
   useEffect(() => {
     if (wasmInitialized) {
       setRhLines(getLines());
+      console.log("replot rH lines");
     }
   }, [wasmInitialized, initialState]);
 

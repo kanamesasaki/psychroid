@@ -14,15 +14,19 @@ interface ChartProps {
 const width = 400;
 const height = 300;
 const margin = { top: 5, right: 55, bottom: 40, left: 10 };
+const xMin = -15.0;
+const xMax = 40.0;
+const yMin = 0.0;
+const yMax = 0.03;
 
 
 const Chart = ({ lines, states }: ChartProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
-    const [xMin, setXMin] = useState(0);
-    const [xMax, setXMax] = useState(40);
-    const [yMin, setYMin] = useState(0);
-    const [yMax, setYMax] = useState(0.03);
+    const [chartInit, setChartInit] = useState(false);
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // exporting SVG, called when the button is clicked
+    //////////////////////////////////////////////////////////////////////////////////////////////////
     const exportSVG = async () => {
         const svgEl = svgRef.current;
         if (!svgEl) return;
@@ -83,26 +87,13 @@ const Chart = ({ lines, states }: ChartProps) => {
         // Aggregate all points from all lines
         const allPoints: Point[] = lines.flatMap((line) => line.data);
 
-        // Find min/max values for scales
-        const xMinNew = d3.min(allPoints, (d: Point) => d.x) ?? 0;
-        const xMaxNew = d3.max(allPoints, (d: Point) => d.x) ?? 40;
-        const yMinNew = 0;
-        const yMaxNew = d3.max(allPoints, (d: Point) => d.y) ?? 0.03;
-
-        // Update state
-        setXMin(xMinNew);
-        setXMax(xMaxNew);
-        setYMin(yMinNew);
-        setYMax(yMaxNew);
-        console.log('XY range:', xMinNew, xMaxNew, yMinNew, yMaxNew);
-
         // Set scales based on min/max values
         const xScale = d3.scaleLinear()
-            .domain([xMinNew, xMaxNew])
+            .domain([xMin, xMax])
             .range([margin.left, width - margin.right]);
 
         const yScale = d3.scaleLinear()
-            .domain([yMinNew, yMaxNew])
+            .domain([yMin, yMax])
             .range([height - margin.bottom, margin.top]);
 
         // SVG container
@@ -246,12 +237,16 @@ const Chart = ({ lines, states }: ChartProps) => {
                 .y(d => yScale(d.y))
                 .curve(d3.curveLinear) // Use linear interpolation for the closing edges
             );
+        setChartInit(true);
     }, [lines]);
 
-    // Add points for each state
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // Plot points for each state
+    //////////////////////////////////////////////////////////////////////////////////////////////////
     useEffect(() => {
         if (!svgRef.current) return;
         if (states.length === 0) return;
+        if (!chartInit) return;
 
         const svg = d3.select(svgRef.current);
 
