@@ -483,41 +483,61 @@ fn t_wet_bulb_from_humidity_ratio(
     pressure: f64,
     unit: UnitSystem,
 ) -> f64 {
-    let saturated_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
-    let saturation_pressure: f64 = saturated_water_vapor.saturation_pressure();
-    let saturation_humidity_ratio: f64 =
-        MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
     match unit {
-        UnitSystem::SI => {
-            t_wet_bulb_from_humidity_ratio_si(t_dry_bulb, humidity_ratio, saturation_humidity_ratio)
-        }
-        UnitSystem::IP => {
-            t_wet_bulb_from_humidity_ratio_ip(t_dry_bulb, humidity_ratio, saturation_humidity_ratio)
-        }
+        UnitSystem::SI => t_wet_bulb_from_humidity_ratio_si(t_dry_bulb, humidity_ratio, pressure),
+        UnitSystem::IP => t_wet_bulb_from_humidity_ratio_ip(t_dry_bulb, humidity_ratio, pressure),
     }
 }
 
-fn t_wet_bulb_from_humidity_ratio_si(
-    t_dry_bulb: f64,
-    humidity_ratio: f64,
-    saturation_humidity_ratio: f64,
-) -> f64 {
-    let t_wet_bulb_a = -(humidity_ratio * (2501.0 + 1.860 * t_dry_bulb)
-        - 2501.0 * saturation_humidity_ratio
-        + 1.006 * t_dry_bulb)
-        / (4.186 * humidity_ratio - 2.326 * saturation_humidity_ratio + 1.006);
-    let t_wet_bulb_b = -(humidity_ratio * (2830.0 + 1.860 * t_dry_bulb)
-        - 2830.0 * saturation_humidity_ratio
-        + 1.006 * t_dry_bulb)
-        / (2.1 * humidity_ratio - 0.24 * saturation_humidity_ratio + 1.006);
-    match (
-        t_wet_bulb_a >= FREEZING_POINT_WATER_SI,
-        t_wet_bulb_b >= FREEZING_POINT_WATER_SI,
-    ) {
-        (true, true) => t_wet_bulb_a,
-        (false, false) => t_wet_bulb_b,
-        _ => 0.0,
-    }
+fn t_wet_bulb_from_humidity_ratio_si(t_dry_bulb: f64, humidity_ratio: f64, pressure: f64) -> f64 {
+    let f = |t_wet_bulb: f64| {
+        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::SI);
+        let saturation_pressure = saturation_water_vapor.saturation_pressure();
+        let saturation_humidity_ratio =
+            MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
+        match t_wet_bulb >= FREEZING_POINT_WATER_SI {
+            true => {
+                humidity_ratio * (2501.0 + 1.860 * t_dry_bulb - 4.186 * t_wet_bulb)
+                    - (2501.0 - 2.326 * t_wet_bulb) * saturation_humidity_ratio
+                    + 1.006 * (t_dry_bulb - t_wet_bulb)
+            }
+            false => {
+                humidity_ratio * (2830.0 + 1.860 * t_dry_bulb - 2.100 * t_wet_bulb)
+                    - (2830.0 - 0.240 * t_wet_bulb) * saturation_humidity_ratio
+                    + 1.006 * (t_dry_bulb - t_wet_bulb)
+            }
+        }
+    };
+    let d = |t_wet_bulb: f64| {
+        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::SI);
+        let saturation_pressure = saturation_water_vapor.saturation_pressure();
+        let saturation_humidity_ratio =
+            MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
+        let deriv_saturation_humidity_ratio = MASS_RATIO_WATER_DRY_AIR
+            * pressure
+            * saturation_water_vapor.deriv_saturation_pressure()
+            / (pressure - saturation_pressure).powi(2);
+        match t_wet_bulb >= FREEZING_POINT_WATER_SI {
+            true => {
+                -4.186 * humidity_ratio - 2501.0 * deriv_saturation_humidity_ratio
+                    + 2.326 * saturation_humidity_ratio
+                    + 2.326 * t_wet_bulb * deriv_saturation_humidity_ratio
+                    - 1.006
+            }
+            false => {
+                -2.100 * humidity_ratio - 2830.0 * deriv_saturation_humidity_ratio
+                    + 0.240 * saturation_humidity_ratio
+                    + 0.240 * t_wet_bulb * deriv_saturation_humidity_ratio
+                    - 1.006
+            }
+        }
+    };
+    let mut convergency = SimpleConvergency {
+        eps: 1e-6f64,
+        max_iter: 50,
+    };
+    let root = find_root_newton_raphson(t_dry_bulb, &f, &d, &mut convergency);
+    root.unwrap()
 }
 
 fn t_wet_bulb_from_humidity_ratio_ip(
@@ -692,6 +712,9 @@ mod tests {
     #[test]
     fn test_t_wet_bulb() {
         let humidity_ratio = humidity_ratio_from_t_wet_bulb(30.0, 25.0, 95461.0, UnitSystem::SI);
-        assert_relative_eq!(humidity_ratio, 0.0192281274241096, max_relative = 0.001);
+        assert_relative_eq!(humidity_ratio, 0.0192281274241096, max_relative = 1.0E-3);
+        let t_wet_bulb =
+            t_wet_bulb_from_humidity_ratio(30.0, humidity_ratio, 95461.0, UnitSystem::SI);
+        assert_relative_eq!(t_wet_bulb, 25.0, max_relative = 1.0E-3);
     }
 }
