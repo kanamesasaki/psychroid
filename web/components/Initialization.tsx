@@ -91,6 +91,8 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                         <SelectItem value="humidity_ratio">Humidity Ratio</SelectItem>
                                         <SelectItem value="relative_humidity">Relative Humidity</SelectItem>
                                         <SelectItem value="t_wet_bulb">Wet-bulb Temperature</SelectItem>
+                                        <SelectItem value="t_dew_point">Dew-point Temperature</SelectItem>
+                                        <SelectItem value="specific_enthalpy">Specific Enthalpy</SelectItem>
                                     </SelectGroup>
                                 </SelectContent>
                             </Select>

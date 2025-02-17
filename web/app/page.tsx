@@ -140,6 +140,8 @@ const Page = () => {
   useEffect(() => {
     if (wasmInitialized) {
       const stateArray: State[] = [];
+
+      // Create moist air object based on the second input parameter
       let moistAir: WasmMoistAir;
       if (initialState.parameterType2 === "humidity_ratio") {
         moistAir = WasmMoistAir.fromHumidityRatio(initialState.value1, initialState.value2, initialState.pressure, true);
@@ -149,7 +151,7 @@ const Page = () => {
         moistAir = WasmMoistAir.fromTWetBulb(initialState.value1, initialState.value2, initialState.pressure, true);
       } else if (initialState.parameterType2 === "t_dew_point") {
         moistAir = WasmMoistAir.fromTDewPoint(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else if (initialState.parameterType2 === "enthalpy") {
+      } else if (initialState.parameterType2 === "specific_enthalpy") {
         moistAir = WasmMoistAir.fromSpecificEnthalpy(initialState.value1, initialState.value2, initialState.pressure, true);
       } else {
         console.error("Invalid parameter type");

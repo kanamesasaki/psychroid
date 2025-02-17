@@ -422,7 +422,7 @@ fn humidity_ratio_from_t_wet_bulb(
     pressure: f64,
     unit: UnitSystem,
 ) -> f64 {
-    let saturated_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+    let saturated_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, unit);
     let saturation_pressure: f64 = saturated_water_vapor.saturation_pressure();
     let saturation_humidity_ratio: f64 =
         MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
@@ -502,23 +502,22 @@ fn t_wet_bulb_from_humidity_ratio_si(
     humidity_ratio: f64,
     saturation_humidity_ratio: f64,
 ) -> f64 {
-    let t_wet_bulb_b = (humidity_ratio * (2830.0 + 1.860 * t_dry_bulb)
-        - 2830.0 * saturation_humidity_ratio
-        + 1.006 * t_dry_bulb)
-        / (2.1 * humidity_ratio - 0.24 * saturation_humidity_ratio + 1.006);
-    let t_wet_bulb_a = (humidity_ratio * (2501.0 + 1.860 * t_dry_bulb)
+    let t_wet_bulb_a = -(humidity_ratio * (2501.0 + 1.860 * t_dry_bulb)
         - 2501.0 * saturation_humidity_ratio
         + 1.006 * t_dry_bulb)
         / (4.186 * humidity_ratio - 2.326 * saturation_humidity_ratio + 1.006);
-    let t_wet_bulb =
-        if t_wet_bulb_a >= FREEZING_POINT_WATER_SI && t_wet_bulb_b >= FREEZING_POINT_WATER_SI {
-            t_wet_bulb_a
-        } else if t_wet_bulb_a < FREEZING_POINT_WATER_SI && t_wet_bulb_b < FREEZING_POINT_WATER_SI {
-            t_wet_bulb_b
-        } else {
-            (t_wet_bulb_a + t_wet_bulb_b) / 2.0
-        };
-    t_wet_bulb
+    let t_wet_bulb_b = -(humidity_ratio * (2830.0 + 1.860 * t_dry_bulb)
+        - 2830.0 * saturation_humidity_ratio
+        + 1.006 * t_dry_bulb)
+        / (2.1 * humidity_ratio - 0.24 * saturation_humidity_ratio + 1.006);
+    match (
+        t_wet_bulb_a >= FREEZING_POINT_WATER_SI,
+        t_wet_bulb_b >= FREEZING_POINT_WATER_SI,
+    ) {
+        (true, true) => t_wet_bulb_a,
+        (false, false) => t_wet_bulb_b,
+        _ => 0.0,
+    }
 }
 
 fn t_wet_bulb_from_humidity_ratio_ip(
@@ -534,15 +533,14 @@ fn t_wet_bulb_from_humidity_ratio_ip(
         - 1093.0 * saturation_humidity_ratio
         + 0.240 * t_dry_bulb)
         / (0.556 * humidity_ratio - 0.556 * saturation_humidity_ratio + 0.240);
-    let t_wet_bulb =
-        if t_wet_bulb_a >= FREEZING_POINT_WATER_IP && t_wet_bulb_b >= FREEZING_POINT_WATER_IP {
-            t_wet_bulb_a
-        } else if t_wet_bulb_a < FREEZING_POINT_WATER_IP && t_wet_bulb_b < FREEZING_POINT_WATER_IP {
-            t_wet_bulb_b
-        } else {
-            (t_wet_bulb_a + t_wet_bulb_b) / 2.0
-        };
-    t_wet_bulb
+    match (
+        t_wet_bulb_a >= FREEZING_POINT_WATER_IP,
+        t_wet_bulb_b >= FREEZING_POINT_WATER_IP,
+    ) {
+        (true, true) => t_wet_bulb_a,
+        (false, false) => t_wet_bulb_b,
+        _ => (t_wet_bulb_a + t_wet_bulb_b) / 2.0,
+    }
 }
 
 /// Calculates the humidity ratio from dry-bulb temperature and relative humidity
@@ -619,8 +617,6 @@ fn humidity_ratio_from_specific_enthalpy(
 
 #[cfg(test)]
 mod tests {
-    use crate::moist_air;
-
     use super::*;
     use approx::assert_abs_diff_eq;
     use approx::assert_relative_eq;
@@ -678,5 +674,24 @@ mod tests {
             );
             assert_abs_diff_eq!(moist_air.relative_humidity(), rh, epsilon = 1.0E-10);
         });
+    }
+
+    #[test]
+    fn test_relative_humidity_100() {
+        let t_dry_bulb = [1.0, 10.0, 20.0, 30.0, 40.0, 50.0];
+        let pressure = 101325.0;
+        let unit = UnitSystem::SI;
+
+        t_dry_bulb.iter().for_each(|&t| {
+            let moist_air = MoistAir::from_t_dry_bulb_relative_humidity(t, 1.0, pressure, unit);
+            assert_relative_eq!(moist_air.t_dew_point(), t, max_relative = 1.0E-8);
+            assert_relative_eq!(moist_air.t_wet_bulb(), t, max_relative = 1.0E-8);
+        });
+    }
+
+    #[test]
+    fn test_t_wet_bulb() {
+        let humidity_ratio = humidity_ratio_from_t_wet_bulb(30.0, 25.0, 95461.0, UnitSystem::SI);
+        assert_relative_eq!(humidity_ratio, 0.0192281274241096, max_relative = 0.001);
     }
 }
