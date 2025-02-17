@@ -117,6 +117,26 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             .attr('height', height - margin.top - margin.bottom);
 
         const rh100Line = rhLines[rhLines.length - 1];
+        const exceedingIndex = rh100Line.data.findIndex(point => point.y > yMax);
+        let rh100LineClipped: { x: number; y: number }[] = [];
+
+        if (exceedingIndex !== -1 && exceedingIndex > 0) {
+            // Interpolation: remove exceedingIndex and later, then add the interpolated point
+            const p0 = rh100Line.data[exceedingIndex - 1];
+            const p1 = rh100Line.data[exceedingIndex];
+            let t: number = (yMax - p0.y) / (p1.y - p0.y);
+            let interpolatedX: number = p0.x + t * (p1.x - p0.x);
+            rh100LineClipped = [...rh100Line.data.slice(0, exceedingIndex), { x: interpolatedX, y: yMax }];
+        } else {
+            // Extrapolation: add the extrapolated point to the end of the array
+            const last = rh100Line.data.length;
+            const p0 = rh100Line.data[last - 2];
+            const p1 = rh100Line.data[last - 1];
+            let t: number = (yMax - p0.y) / (p1.y - p0.y);
+            let interpolatedX: number = p0.x + t * (p1.x - p0.x);
+            rh100LineClipped = [...rh100Line.data, { x: interpolatedX, y: yMax }];
+        }
+
         svg.append('defs')
             .append('clipPath')
             .attr('id', 'grid-area-clip')
@@ -125,7 +145,7 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                 { x: xMax, y: yMax },
                 { x: xMax, y: yMin },
                 { x: xMin, y: yMin },
-                ...rh100Line.data
+                ...rh100LineClipped,
             ])
             .attr('d', d3.line<{ x: number; y: number }>()
                 .x(d => xScale(d.x))
@@ -249,7 +269,6 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             .x(d => xScale(d.x))
             .y(d => yScale(d.y))
             .curve(d3.curveCatmullRom);
-
 
         rhLines.forEach(lineData => {
             // Add spline path
