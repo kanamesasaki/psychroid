@@ -6,7 +6,7 @@ import Chart from "../components/Chart";
 import Process from "../components/Process";
 import Header from "../components/Header";
 import ProcessTable from "../components/StateTable";
-import init, { get_relative_humidity_line } from '@/lib/psychroid';
+import init, { get_relative_humidity_line, get_specific_enthalpy_line } from '@/lib/psychroid';
 
 export type Point = {
   x: number; // Dry-bulb temperature in °C 
@@ -81,36 +81,53 @@ const Page = () => {
   }, []);
 
   // Get relative humidity lines using WASM module
-  const getLines = (): Line[] => {
+  const getRhLines = (): Line[] => {
     const rhValues = Array.from({ length: 10 }, (_, i) => (i + 1) * 0.1);
-    const lines: Line[] = [];
+    const rhLines: Line[] = [];
 
     rhValues.forEach(rh => {
-      const data = get_relative_humidity_line(
+      const wasmPoints = get_relative_humidity_line(
         rh,       // RH value (0.1 to 1.0)
         initialState.pressure, // Standard pressure
         true      // Use SI units
       );
 
-      const points = Array.from(data.temperatures).map((t, i) => ({
-        x: t,
-        y: data.humidity_ratios[i]
-      }));
-
-      lines.push({
-        data: points,
+      rhLines.push({
+        data: wasmPoints,
         label: `${Math.round(rh * 100)}%`
       });
     });
 
-    return lines;
+    return rhLines;
+  };
+
+  // Get enthalpy lines using WASM module
+  const getEnthalpyLines = (): Line[] => {
+    const enthalpyValues = Array.from({ length: 13 }, (_, i) => (i - 1) * 10);
+    const enthalpyLines: Line[] = [];
+
+    enthalpyValues.forEach(enthalpy => {
+      const wasmPoints = get_specific_enthalpy_line(
+        enthalpy, // Enthalpy value
+        initialState.pressure, // Standard pressure
+        true // Use SI units
+      );
+
+      enthalpyLines.push({
+        data: wasmPoints,
+        label: `${enthalpy} J/kg`
+      });
+    });
+
+    return enthalpyLines;
   };
 
   // Update rhLines whenever wasmInitialized or initialState changes
   useEffect(() => {
     if (wasmInitialized) {
-      setRhLines(getLines());
-      console.log("replot rH lines");
+      setRhLines(getRhLines());
+      setEnthalpyLines(getEnthalpyLines());
+      console.log("plot RH lines and enthalpy lines");
     }
   }, [wasmInitialized, initialState]);
 
@@ -143,7 +160,7 @@ const Page = () => {
       <Header />
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="col-span-1 md:col-span-7">
-          <Chart lines={rhLines} states={states} />
+          <Chart rhLines={rhLines} enthalpyLines={enthalpyLines} states={states} />
           <ProcessTable states={states} />
         </div>
         <div className="col-span-1 md:col-span-5">

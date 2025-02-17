@@ -129,6 +129,22 @@ impl MoistAir {
         }
     }
 
+    pub fn from_t_dry_bulb_enthalpy(
+        t_dry_bulb: f64,
+        specific_enthalpy: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Self {
+        let humidity_ratio =
+            humidity_ratio_from_specific_enthalpy(t_dry_bulb, specific_enthalpy, unit);
+        MoistAir {
+            t_dry_bulb,
+            humidity_ratio,
+            pressure,
+            unit,
+        }
+    }
+
     pub fn humidity_ratio(&self) -> f64 {
         self.humidity_ratio
     }

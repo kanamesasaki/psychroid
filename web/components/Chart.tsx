@@ -7,7 +7,8 @@ import { Button } from './ui/button';
 import { Download } from "lucide-react"; // アイコン用
 
 interface ChartProps {
-    lines: Line[];
+    rhLines: Line[];
+    enthalpyLines: Line[];
     states: State[];
 }
 
@@ -20,7 +21,7 @@ const yMin = 0.0;
 const yMax = 0.03;
 
 
-const Chart = ({ lines, states }: ChartProps) => {
+const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
     const svgRef = useRef<SVGSVGElement>(null);
     const [chartInit, setChartInit] = useState(false);
 
@@ -80,12 +81,13 @@ const Chart = ({ lines, states }: ChartProps) => {
         }
     };
 
+    //////////////////////////////////////////////////////////////////////////////////////////////////
+    // exporting SVG, called when the button is clicked
+    //////////////////////////////////////////////////////////////////////////////////////////////////
     useEffect(() => {
         if (!svgRef.current) return;
-        if (lines.length === 0) return;
-
-        // Aggregate all points from all lines
-        const allPoints: Point[] = lines.flatMap((line) => line.data);
+        if (rhLines.length === 0) return;
+        // if (enthalpyLines.length === 0) return;
 
         // Set scales based on min/max values
         const xScale = d3.scaleLinear()
@@ -114,7 +116,7 @@ const Chart = ({ lines, states }: ChartProps) => {
             .attr('width', width - margin.left - margin.right)
             .attr('height', height - margin.top - margin.bottom);
 
-        const rh100Line = lines[lines.length - 1];
+        const rh100Line = rhLines[rhLines.length - 1];
         svg.append('defs')
             .append('clipPath')
             .attr('id', 'grid-area-clip')
@@ -241,23 +243,24 @@ const Chart = ({ lines, states }: ChartProps) => {
             `;
         document.head.appendChild(style);
 
+        // plot RH lines
         // Create line generator
-        const lineFunc = d3.line<Point>()
+        const rhLineFunc = d3.line<Point>()
             .x(d => xScale(d.x))
             .y(d => yScale(d.y))
             .curve(d3.curveCatmullRom);
 
-        lines.forEach(lineData => {
+
+        rhLines.forEach(lineData => {
             // Add spline path
             plotArea.append('path')
                 .datum(lineData.data)
                 .attr('fill', 'none')
                 .attr('stroke', '#666666')
                 .attr('stroke-width', 0.5)
-                .attr('d', lineFunc)
-                .attr('clip-path', 'url(#plot-area-clip)'); // 明示的にクリッピングを適用
+                .attr('d', rhLineFunc);
 
-            // Add rH labels at the end of each line
+            // Add RH labels at the end of each line
             const lastPoint = lineData.data[lineData.data.length - 1];
             svg.append('text')
                 .attr('x', xScale(lastPoint.x) - 5)
@@ -268,8 +271,35 @@ const Chart = ({ lines, states }: ChartProps) => {
                 .text(`${lineData.label}`);
         });
 
+        // plot enthalpy lines
+        // Create line generator
+        const enthalpyLineFunc = d3.line<Point>()
+            .x(d => xScale(d.x))
+            .y(d => yScale(d.y))
+            .curve(d3.curveLinear);
+
+        enthalpyLines.forEach(lineData => {
+            // Add line
+            gridContainer.append('path')
+                .datum(lineData.data)
+                .attr('fill', 'none')
+                .attr('stroke', '#666666')
+                .attr('stroke-width', 0.5)
+                .attr('d', enthalpyLineFunc);
+
+            // Add enthalpy labels at the end of each line
+            const lastPoint = lineData.data[lineData.data.length - 3];
+            svg.append('text')
+                .attr('x', xScale(lastPoint.x) + 5)
+                .attr('y', yScale(lastPoint.y))
+                .attr('fill', '#666666')
+                .attr('font-size', '6px')
+                .attr('text-anchor', 'start')
+                .text(`${lineData.label}`);
+        });
+
         setChartInit(true);
-    }, [lines]);
+    }, [rhLines, enthalpyLines]);
 
     //////////////////////////////////////////////////////////////////////////////////////////////////
     // Plot points for each state
