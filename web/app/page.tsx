@@ -5,8 +5,8 @@ import Initialization from "../components/Initialization";
 import Chart from "../components/Chart";
 import Process from "../components/Process";
 import Header from "../components/Header";
-import ProcessTable from "../components/StateTable";
-import init, { get_relative_humidity_line, get_specific_enthalpy_line } from '@/lib/psychroid';
+import StateTable from "../components/StateTable";
+import init, { relative_humidity_lines, specific_enthalpy_lines, WasmMoistAir } from '@/lib/psychroid';
 
 export type Point = {
   x: number; // Dry-bulb temperature in °C 
@@ -37,7 +37,7 @@ export type State = {
 }
 
 export type Process = {
-  processType: string;
+  processType: string; // heating, cooling, humidification
   parameterType: string;
   value: number;
 };
@@ -86,7 +86,7 @@ const Page = () => {
     const rhLines: Line[] = [];
 
     rhValues.forEach(rh => {
-      const wasmPoints = get_relative_humidity_line(
+      const wasmPoints = relative_humidity_lines(
         rh,       // RH value (0.1 to 1.0)
         initialState.pressure, // Standard pressure
         true      // Use SI units
@@ -107,7 +107,7 @@ const Page = () => {
     const enthalpyLines: Line[] = [];
 
     enthalpyValues.forEach(enthalpy => {
-      const wasmPoints = get_specific_enthalpy_line(
+      const wasmPoints = specific_enthalpy_lines(
         enthalpy, // Enthalpy value
         initialState.pressure, // Standard pressure
         true // Use SI units
@@ -140,13 +140,29 @@ const Page = () => {
   useEffect(() => {
     if (wasmInitialized) {
       const stateArray: State[] = [];
+      let moistAir: WasmMoistAir;
+      if (initialState.parameterType2 === "humidity_ratio") {
+        moistAir = WasmMoistAir.fromHumidityRatio(initialState.value1, initialState.value2, initialState.pressure, true);
+      } else if (initialState.parameterType2 === "relative_humidity") {
+        moistAir = WasmMoistAir.fromRelativeHumidity(initialState.value1, initialState.value2, initialState.pressure, true);
+      } else if (initialState.parameterType2 === "t_wet_bulb") {
+        moistAir = WasmMoistAir.fromTWetBulb(initialState.value1, initialState.value2, initialState.pressure, true);
+      } else if (initialState.parameterType2 === "t_dew_point") {
+        moistAir = WasmMoistAir.fromTDewPoint(initialState.value1, initialState.value2, initialState.pressure, true);
+      } else if (initialState.parameterType2 === "enthalpy") {
+        moistAir = WasmMoistAir.fromSpecificEnthalpy(initialState.value1, initialState.value2, initialState.pressure, true);
+      } else {
+        console.error("Invalid parameter type");
+        return
+      }
+
       const state0: State = {
-        tDryBulb: initialState.value1,
-        humidityRatio: initialState.value2,
-        tWetBulb: 0,
-        tDewPoint: 0,
-        relativeHumidity: 0,
-        enthalpy: 0
+        tDryBulb: moistAir.tDryBulb(),
+        humidityRatio: moistAir.humidityRatio(),
+        tWetBulb: moistAir.tWetBulb(),
+        tDewPoint: moistAir.tDewPoint(),
+        relativeHumidity: moistAir.relativeHumidity(),
+        enthalpy: moistAir.specificEnthalpy()
       }
       stateArray.push(state0);
       setStates(stateArray);
@@ -161,7 +177,7 @@ const Page = () => {
       <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
         <div className="col-span-1 md:col-span-7">
           <Chart rhLines={rhLines} enthalpyLines={enthalpyLines} states={states} />
-          <ProcessTable states={states} />
+          <StateTable states={states} />
         </div>
         <div className="col-span-1 md:col-span-5">
           <Initialization onInitialize={handleInitialize} />

@@ -149,6 +149,10 @@ impl MoistAir {
         self.humidity_ratio
     }
 
+    pub fn t_dry_bulb(&self) -> f64 {
+        self.t_dry_bulb
+    }
+
     /// Calculates the specific enthalpy of moist air
     ///
     /// # Returns
@@ -209,6 +213,19 @@ impl MoistAir {
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn relative_humidity(&self) -> f64 {
         relative_humidity_from_humidity_ratio(
+            self.t_dry_bulb,
+            self.humidity_ratio,
+            self.pressure,
+            self.unit,
+        )
+    }
+
+    pub fn t_dew_point(&self) -> f64 {
+        t_dew_point_from_humidity_ratio(self.humidity_ratio, self.pressure, self.unit)
+    }
+
+    pub fn t_wet_bulb(&self) -> f64 {
+        t_wet_bulb_from_humidity_ratio(
             self.t_dry_bulb,
             self.humidity_ratio,
             self.pressure,
