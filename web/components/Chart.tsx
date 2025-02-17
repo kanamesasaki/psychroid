@@ -365,7 +365,7 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                 tooltip.transition()
                     .duration(200)
                     .style('opacity', .9);
-                tooltip.html(`Temperature: ${states[0].tDryBulb.toFixed(1)}°C<br/>` +
+                tooltip.html(`Dry-Bulb Temperature: ${states[0].tDryBulb.toFixed(1)}°C<br/>` +
                     `Humidity Ratio: ${states[0].humidityRatio.toFixed(4)} kg/kg`)
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 28) + 'px');
@@ -377,7 +377,7 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             });
         console.log('Initial state:', states[0]);
 
-    }, [states]);
+    }, [states, chartInit]);
 
     return (
         <div className="w-full">
