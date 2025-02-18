@@ -600,9 +600,10 @@ fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: Uni
         saturated_water_vapor.deriv_saturation_pressure()
     };
     let mut convergency = SimpleConvergency {
-        eps: 1e-8f64,
-        max_iter: 30,
+        eps: 1e-6f64,
+        max_iter: 50,
     };
+
     let root = find_root_newton_raphson(10f64, &f, &d, &mut convergency);
     root.unwrap()
 }
@@ -633,6 +634,56 @@ fn humidity_ratio_from_specific_enthalpy(
         UnitSystem::SI => (specific_enthalpy - 1.006 * t_dry_bulb) / (2501.0 + 1.860 * t_dry_bulb),
         UnitSystem::IP => (specific_enthalpy - 0.240 * t_dry_bulb) / (1061.0 + 0.444 * t_dry_bulb),
     }
+}
+
+fn t_dry_bulb_from_specific_enthalpy_humidity_ratio(
+    specific_enthalpy: f64,
+    humidity_ratio: f64,
+    unit: UnitSystem,
+) -> f64 {
+    match unit {
+        UnitSystem::SI => {
+            (specific_enthalpy - humidity_ratio * 2501.0) / (1.006 + humidity_ratio * 1.860)
+        }
+        UnitSystem::IP => {
+            (specific_enthalpy - humidity_ratio * 1061.0) / (0.240 + humidity_ratio * 0.444)
+        }
+    }
+}
+
+fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
+    specific_enthalpy: f64,
+    relative_humidity: f64,
+    pressure: f64,
+    unit: UnitSystem,
+) -> f64 {
+    let f = |t_dry_bulb: f64| {
+        let saturation_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+        let partial_water_vapor_pressure =
+            relative_humidity * saturation_water_vapor.saturation_pressure();
+        (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy) * partial_water_vapor_pressure
+            + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006) * t_dry_bulb * partial_water_vapor_pressure
+            + 1.006 * pressure * t_dry_bulb
+            - specific_enthalpy * pressure
+    };
+    let d = |t_dry_bulb: f64| {
+        let saturation_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit);
+        let partial_water_vapor_pressure =
+            relative_humidity * saturation_water_vapor.saturation_pressure();
+        let deriv_partial_water_vapor_pressure =
+            relative_humidity * saturation_water_vapor.deriv_saturation_pressure();
+        (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy) * deriv_partial_water_vapor_pressure
+            + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006)
+                * (partial_water_vapor_pressure + t_dry_bulb * deriv_partial_water_vapor_pressure)
+            + 1.006 * pressure
+    };
+    let mut convergency = SimpleConvergency {
+        eps: 1e-6f64,
+        max_iter: 50,
+    };
+    let t_init = specific_enthalpy / 1.006; // humidity_ratio = 0.0
+    let root = find_root_newton_raphson(t_init, &f, &d, &mut convergency);
+    root.unwrap()
 }
 
 #[cfg(test)]
@@ -716,5 +767,21 @@ mod tests {
         let t_wet_bulb =
             t_wet_bulb_from_humidity_ratio(30.0, humidity_ratio, 95461.0, UnitSystem::SI);
         assert_relative_eq!(t_wet_bulb, 25.0, max_relative = 1.0E-3);
+    }
+
+    #[test]
+    fn test_specific_enthalpy_relative_humidity() {
+        let relative_humidity = 0.196;
+        let pressure = 101325.0;
+        let specific_enthalpy = 50.0;
+        let unit = UnitSystem::SI;
+
+        let t_dry_bulb = t_dry_bulb_from_specific_enthalpy_relative_humidity(
+            specific_enthalpy,
+            relative_humidity,
+            pressure,
+            unit,
+        );
+        assert_relative_eq!(t_dry_bulb, 33.6, max_relative = 1.0E-6);
     }
 }

@@ -6,7 +6,7 @@ import Chart from "../components/Chart";
 import Process from "../components/Process";
 import Header from "../components/Header";
 import StateTable from "../components/StateTable";
-import init, { relative_humidity_lines, specific_enthalpy_lines, WasmMoistAir } from '@/lib/psychroid';
+import init, { relativeHumidityLines, specificEnthalpyLines, WasmMoistAir } from '@/lib/psychroid';
 
 export type Point = {
   x: number; // Dry-bulb temperature in °C 
@@ -86,7 +86,7 @@ const Page = () => {
     const rhLines: Line[] = [];
 
     rhValues.forEach(rh => {
-      const wasmPoints = relative_humidity_lines(
+      const wasmPoints = relativeHumidityLines(
         rh,       // RH value (0.1 to 1.0)
         initialState.pressure, // Standard pressure
         true      // Use SI units
@@ -107,7 +107,7 @@ const Page = () => {
     const enthalpyLines: Line[] = [];
 
     enthalpyValues.forEach(enthalpy => {
-      const wasmPoints = specific_enthalpy_lines(
+      const wasmPoints = specificEnthalpyLines(
         enthalpy, // Enthalpy value
         initialState.pressure, // Standard pressure
         true // Use SI units

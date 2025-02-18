@@ -86,7 +86,7 @@ fn line_relative_humidity(phi: f64, pressure: f64, unit: UnitSystem) -> Vec<Wasm
 /// ```
 fn line_specific_enthalpy(h: f64, pressure: f64, unit: UnitSystem) -> Vec<WasmPoint> {
     let t_array: Vec<f64> = match unit {
-        UnitSystem::SI => (-15..=40).step_by(1).map(|x| x as f64).collect(),
+        UnitSystem::SI => (-50..=100).step_by(5).map(|x| x as f64).collect(),
         UnitSystem::IP => (5..=104).step_by(5).map(|x| x as f64).collect(),
     };
     let point_array: Vec<WasmPoint> = t_array
@@ -103,7 +103,7 @@ fn line_specific_enthalpy(h: f64, pressure: f64, unit: UnitSystem) -> Vec<WasmPo
 }
 
 #[wasm_bindgen]
-pub fn relative_humidity_lines(phi: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
+pub fn relativeHumidityLines(phi: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
     let unit = if is_si {
         UnitSystem::SI
     } else {
@@ -113,7 +113,7 @@ pub fn relative_humidity_lines(phi: f64, pressure: f64, is_si: bool) -> Vec<Wasm
 }
 
 #[wasm_bindgen]
-pub fn specific_enthalpy_lines(h: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
+pub fn specificEnthalpyLines(h: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
     let unit = if is_si {
         UnitSystem::SI
     } else {
