@@ -4,6 +4,12 @@ use crate::common::{FREEZING_POINT_WATER_IP, FREEZING_POINT_WATER_SI, MASS_RATIO
 use crate::saturated_water_vapor::SaturatedWaterVapor;
 use roots::{find_root_newton_raphson, SimpleConvergency};
 
+const C14_SI: f64 = 6.54;
+const C15_SI: f64 = 14.526;
+const C16_SI: f64 = 0.7389;
+const C17_SI: f64 = 0.09486;
+const C18_SI: f64 = 0.4569;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Moist Air
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -592,6 +598,7 @@ fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: Uni
     let saturation_pressure =
         pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
     let f = |t: f64| {
+        println!("t: {}", t);
         let saturated_water_vapor = SaturatedWaterVapor::new(t, unit);
         saturated_water_vapor.saturation_pressure() - saturation_pressure
     };
@@ -604,7 +611,21 @@ fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: Uni
         max_iter: 50,
     };
 
-    let root = find_root_newton_raphson(10f64, &f, &d, &mut convergency);
+    let partial_water_vapor_pressure =
+        0.001 * humidity_ratio * pressure / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
+    let alpha = partial_water_vapor_pressure.ln();
+    let t_above = C14_SI
+        + C15_SI * alpha
+        + C16_SI * alpha.powi(2)
+        + C17_SI * alpha.powi(3)
+        + C18_SI * partial_water_vapor_pressure.powf(0.1984);
+    let t_below = 6.09 + 12.608 * alpha + 0.4959 * alpha.powi(2);
+    let t_init = match (t_above >= 0.0, t_below >= 0.0) {
+        (true, true) => t_above,
+        (false, false) => t_below,
+        _ => (t_above + t_below) / 2.0,
+    };
+    let root = find_root_newton_raphson(t_init, &f, &d, &mut convergency);
     root.unwrap()
 }
 
@@ -783,5 +804,11 @@ mod tests {
             unit,
         );
         assert_relative_eq!(t_dry_bulb, 33.6, max_relative = 1.0E-6);
+    }
+
+    #[test]
+    fn test_t_dew_point() {
+        let t_dew_point = t_dew_point_from_humidity_ratio(0.001, 101325.0, UnitSystem::SI);
+        assert_relative_eq!(t_dew_point, -15.2, max_relative = 1.0E-6);
     }
 }

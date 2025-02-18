@@ -145,7 +145,7 @@ impl SaturatedWaterVapor {
                     + C7_SI / t_k
             }
             false => {
-                C8_SI / t_k.powi(2)
+                -C8_SI / t_k.powi(2)
                     + C10_SI
                     + 2.0 * C11_SI * t_k
                     + 3.0 * C12_SI * t_k.powi(2)
@@ -243,5 +243,15 @@ mod tests {
 
         wsat.t_dry_bulb = -60.0;
         assert_abs_diff_eq!(wsat.saturation_pressure(), 0.00108E+03, epsilon = 0.01);
+    }
+
+    #[test]
+    fn test_around_zero() {
+        for i in -100..100 {
+            let wsat = SaturatedWaterVapor::new(0.1 * i as f64, UnitSystem::SI);
+            let p = wsat.saturation_pressure();
+            let dp = wsat.deriv_saturation_pressure();
+            println!("t = {:.1}, p = {:.2}, dp = {:.2}", 0.1 * i as f64, p, dp);
+        }
     }
 }

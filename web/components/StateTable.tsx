@@ -16,8 +16,8 @@ const ProcessTable: React.FC<StateTableProps> = ({ states }) => {
                         <th className="px-4 py-2 border-b">ID</th>
                         <th className="px-4 py-2 border-b">T<sub>db</sub> (°C)</th>
                         <th className="px-4 py-2 border-b">W (kg/kg)</th>
-                        <th className="px-4 py-2 border-b">rH (%)</th>
-                        <th className="px-4 py-2 border-b">h (J)</th>
+                        <th className="px-4 py-2 border-b">RH (%)</th>
+                        <th className="px-4 py-2 border-b">h (kJ/kg)</th>
                         <th className="px-4 py-2 border-b">T<sub>wb</sub> (°C)</th>
                         <th className="px-4 py-2 border-b">T<sub>dew</sub> (°C)</th>
                     </tr>
