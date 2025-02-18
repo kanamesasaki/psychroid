@@ -6,7 +6,7 @@ import Chart from "../components/Chart";
 import Process from "../components/Process";
 import Header from "../components/Header";
 import StateTable from "../components/StateTable";
-import init, { relativeHumidityLines, specificEnthalpyLines, WasmMoistAir } from '@/lib/psychroid';
+import init, { relativeHumidityLine, specificEnthalpyLine, WasmMoistAir } from '@/lib/psychroid';
 
 export type Point = {
   x: number; // Dry-bulb temperature in °C 
@@ -86,10 +86,12 @@ const Page = () => {
     const rhLines: Line[] = [];
 
     rhValues.forEach(rh => {
-      const wasmPoints = relativeHumidityLines(
-        rh,       // RH value (0.1 to 1.0)
-        initialState.pressure, // Standard pressure
-        true      // Use SI units
+      const wasmPoints = relativeHumidityLine(
+        rh,                       // RH value (0.1 to 1.0)
+        initialState.pressure,    // Standard pressure
+        -15,                      // Min dry-bulb temperature
+        40,                       // Max dry-bulb temperature
+        true                      // Use SI units
       );
 
       rhLines.push({
@@ -107,15 +109,17 @@ const Page = () => {
     const enthalpyLines: Line[] = [];
 
     enthalpyValues.forEach(enthalpy => {
-      const wasmPoints = specificEnthalpyLines(
-        enthalpy, // Enthalpy value
-        initialState.pressure, // Standard pressure
-        true // Use SI units
+      const wasmPoints = specificEnthalpyLine(
+        enthalpy,                 // Enthalpy value
+        initialState.pressure,    // Standard pressure
+        -15,                      // Min dry-bulb temperature
+        40,                       // Max dry-bulb temperature
+        true                      // Use SI units
       );
 
       enthalpyLines.push({
         data: wasmPoints,
-        label: `${enthalpy} J/kg`
+        label: `${enthalpy} kJ/kg`
       });
     });
 

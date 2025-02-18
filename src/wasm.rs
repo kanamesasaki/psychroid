@@ -22,22 +22,20 @@ pub struct WasmPoint {
 /// Tuple of vectors (temperatures, humidity ratios):
 /// - temperatures: temperature array in \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
 /// - humidity ratios: corresponding humidity ratio array in \\( \\mathrm{kg_w / kg_{da}} \\) (SI) or \\( \\mathrm{lb_w / lb_{da}} \\) (IP)
-///
-/// # Example
-/// ```
-/// use psychroid::{chart, UnitSystem};
-///
-/// let (temps, hum_ratios) = chart::line_relative_humidity(
-///     0.5,      // 50% RH
-///     101325.0, // Standard pressure
-///     UnitSystem::SI
-/// );
-/// ```
-fn line_relative_humidity(phi: f64, pressure: f64, unit: UnitSystem) -> Vec<WasmPoint> {
-    let t_array: Vec<f64> = match unit {
-        UnitSystem::SI => (-15..=40).step_by(1).map(|x| x as f64).collect(),
-        UnitSystem::IP => (5..=104).step_by(5).map(|x| x as f64).collect(),
+#[wasm_bindgen]
+pub fn relativeHumidityLine(
+    phi: f64,
+    pressure: f64,
+    t_min: isize,
+    t_max: isize,
+    is_si: bool,
+) -> Vec<WasmPoint> {
+    let unit = if is_si {
+        UnitSystem::SI
+    } else {
+        UnitSystem::IP
     };
+    let t_array: Vec<f64> = (t_min..=t_max).step_by(5).map(|x| x as f64).collect();
     let point_array: Vec<WasmPoint> = t_array
         .iter()
         .map(|&t_dry_bulb| {
@@ -75,20 +73,20 @@ fn line_relative_humidity(phi: f64, pressure: f64, unit: UnitSystem) -> Vec<Wasm
 /// - \\(t\\) is dry-bulb temperature
 /// - \\(h\\) is specific enthalpy
 ///
-/// # Example
-/// ```
-/// use psychroid::{chart, UnitSystem};
-///
-/// let (temps, hum_ratios) = chart::line_specific_enthalpy(
-///     50.0,           // 50 kJ/kg_da
-///     UnitSystem::SI
-/// );
-/// ```
-fn line_specific_enthalpy(h: f64, pressure: f64, unit: UnitSystem) -> Vec<WasmPoint> {
-    let t_array: Vec<f64> = match unit {
-        UnitSystem::SI => (-50..=100).step_by(5).map(|x| x as f64).collect(),
-        UnitSystem::IP => (5..=104).step_by(5).map(|x| x as f64).collect(),
+#[wasm_bindgen]
+pub fn specificEnthalpyLine(
+    h: f64,
+    pressure: f64,
+    t_min: isize,
+    t_max: isize,
+    is_si: bool,
+) -> Vec<WasmPoint> {
+    let unit = if is_si {
+        UnitSystem::SI
+    } else {
+        UnitSystem::IP
     };
+    let t_array: Vec<f64> = (t_min..=t_max).step_by(5).map(|x| x as f64).collect();
     let point_array: Vec<WasmPoint> = t_array
         .iter()
         .map(|&t_dry_bulb| {
@@ -100,26 +98,6 @@ fn line_specific_enthalpy(h: f64, pressure: f64, unit: UnitSystem) -> Vec<WasmPo
         })
         .collect();
     point_array
-}
-
-#[wasm_bindgen]
-pub fn relativeHumidityLines(phi: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
-    let unit = if is_si {
-        UnitSystem::SI
-    } else {
-        UnitSystem::IP
-    };
-    line_relative_humidity(phi, pressure, unit)
-}
-
-#[wasm_bindgen]
-pub fn specificEnthalpyLines(h: f64, pressure: f64, is_si: bool) -> Vec<WasmPoint> {
-    let unit = if is_si {
-        UnitSystem::SI
-    } else {
-        UnitSystem::IP
-    };
-    line_specific_enthalpy(h, pressure, unit)
 }
 
 /// A WASM-friendly wrapper around the MoistAir struct.
