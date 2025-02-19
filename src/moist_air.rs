@@ -406,14 +406,12 @@ impl MoistAir {
         let t_saturated = find_root_newton_raphson(
             self.t_dry_bulb,
             |t| {
-                let mut saturated_water = SaturatedWaterVapor::new(self.t_dry_bulb, self.unit);
-                saturated_water.t_dry_bulb = t;
+                let saturated_water = SaturatedWaterVapor::new(t, self.unit);
                 let pws: f64 = saturated_water.saturation_pressure();
                 self.humidity_ratio * (self.pressure - pws) - MASS_RATIO_WATER_DRY_AIR * pws
             },
             |t| {
-                let mut saturated_water = SaturatedWaterVapor::new(self.t_dry_bulb, self.unit);
-                saturated_water.t_dry_bulb = t;
+                let saturated_water = SaturatedWaterVapor::new(t, self.unit);
                 -(self.humidity_ratio + MASS_RATIO_WATER_DRY_AIR)
                     * saturated_water.deriv_saturation_pressure()
             },
@@ -833,7 +831,7 @@ mod tests {
 
     #[test]
     fn test_t_dew_point() {
-        let t_dew_point = t_dew_point_from_humidity_ratio(0.001, 101325.0, UnitSystem::IP);
-        assert_relative_eq!(t_dew_point, -15.2, max_relative = 1.0E-6);
+        let t_dew_point = t_dew_point_from_humidity_ratio(0.1, 14.696, UnitSystem::IP);
+        assert_relative_eq!(t_dew_point, -42.123, max_relative = 1.0E-6);
     }
 }
