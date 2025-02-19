@@ -775,6 +775,44 @@ mod tests {
     }
 
     #[test]
+    fn test_saturated_moist_air_ip() {
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(-58.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0000243, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), -13.906, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(-4.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0006373, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), -0.286, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(23.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0024863, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 8.186, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(41.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.005425, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 15.699, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(77.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.020173, max_relative = 0.005);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 40.576, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(122.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.086863, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 126.066, max_relative = 0.01);
+
+        let moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(185.0, 1.0, 14.696, UnitSystem::IP);
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.838105, max_relative = 0.015);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 999.749, max_relative = 0.01);
+    }
+
+    #[test]
     fn test_relative_humidity_humidity_ratio() {
         let relative_humidity_array = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
         relative_humidity_array.iter().for_each(|&rh| {
