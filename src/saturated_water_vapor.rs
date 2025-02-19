@@ -17,6 +17,21 @@ const C11_SI: f64 = 4.1764768E-05;
 const C12_SI: f64 = -1.4452093E-08;
 const C13_SI: f64 = 6.5459673E+00;
 
+const C1_IP: f64 = -1.0214165E+04;
+const C2_IP: f64 = -4.8932428E+00;
+const C3_IP: f64 = -5.3765794E-03;
+const C4_IP: f64 = 1.9202377E-07;
+const C5_IP: f64 = 3.5575832E-10;
+const C6_IP: f64 = -9.0344688E-14;
+const C7_IP: f64 = 4.1635019E+00;
+
+const C8_IP: f64 = -1.0440397E+04;
+const C9_IP: f64 = -1.1294650E+01;
+const C10_IP: f64 = -2.7022355E-02;
+const C11_IP: f64 = 1.2890360E-05;
+const C12_IP: f64 = -2.4780681E-09;
+const C13_IP: f64 = 6.5459673E+00;
+
 /// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 #[derive(Debug)]
 pub struct SaturatedWaterVapor {
@@ -80,17 +95,21 @@ impl SaturatedWaterVapor {
         let t_r: f64 = t_rankine_from_t_fahrenheit(self.t_dry_bulb);
         match self.t_dry_bulb >= TRIPLE_POINT_WATER_IP {
             true => {
-                -1.0214165E+04 / t_r - 4.8932428 - 5.3765794E-03 * t_r
-                    + 1.9202377E-07 * t_r.powi(2)
-                    + 3.5575832E-10 * t_r.powi(3)
-                    - 9.0344688E-14 * t_r.powi(4)
-                    + 4.1635019 * t_r.ln()
+                C1_IP / t_r
+                    + C2_IP
+                    + C3_IP * t_r
+                    + C4_IP * t_r.powi(2)
+                    + C5_IP * t_r.powi(3)
+                    + C6_IP * t_r.powi(4)
+                    + C7_IP * t_r.ln()
             }
             false => {
-                -1.0440397E+04 / t_r - 1.1294650E+01 - 2.7022355E-02 * t_r
-                    + 1.2890360E-05 * t_r.powi(2)
-                    - 2.4780681E-09 * t_r.powi(3)
-                    + 6.5459673 * t_r.ln()
+                C8_IP / t_r
+                    + C9_IP
+                    + C10_IP * t_r
+                    + C11_IP * t_r.powi(2)
+                    + C12_IP * t_r.powi(3)
+                    + C13_IP * t_r.ln()
             }
         }
     }
@@ -122,14 +141,19 @@ impl SaturatedWaterVapor {
         let t_r: f64 = t_rankine_from_t_fahrenheit(self.t_dry_bulb);
         match self.t_dry_bulb >= TRIPLE_POINT_WATER_IP {
             true => {
-                1.0214165E+04 / t_r.powi(2) - 5.3765794E-03
-                    + 2.0 * 1.9202377E-07 * t_r
-                    + 3.0 * 3.5575832E-10 * t_r.powi(2)
-                    - 4.0 * 9.0344688E-14 * t_r.powi(3)
+                -C1_IP / t_r.powi(2)
+                    + C3_IP
+                    + 2.0 * C4_IP * t_r
+                    + 3.0 * C5_IP * t_r.powi(2)
+                    + 4.0 * C6_IP * t_r.powi(3)
+                    + C7_IP / t_r
             }
             false => {
-                1.0440397E+04 / t_r.powi(2) - 2.7022355E-02 + 2.0 * 1.2890360E-05 * t_r
-                    - 3.0 * 2.4780681E-09 * t_r.powi(2)
+                -C8_IP / t_r.powi(2)
+                    + C10_IP
+                    + 2.0 * C11_IP * t_r
+                    + 3.0 * C12_IP * t_r.powi(2)
+                    + C13_IP / t_r
             }
         }
     }
@@ -138,7 +162,8 @@ impl SaturatedWaterVapor {
         let t_k: f64 = t_celsius_to_t_kelvin(self.t_dry_bulb);
         match self.t_dry_bulb >= TRIPLE_POINT_WATER_SI {
             true => {
-                -C1_SI / t_k.powi(2) - C3_SI
+                -C1_SI / t_k.powi(2)
+                    + C3_SI
                     + 2.0 * C4_SI * t_k
                     + 3.0 * C5_SI * t_k.powi(2)
                     + 4.0 * C6_SI * t_k.powi(3)

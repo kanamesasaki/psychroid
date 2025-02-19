@@ -10,6 +10,12 @@ const C16_SI: f64 = 0.7389;
 const C17_SI: f64 = 0.09486;
 const C18_SI: f64 = 0.4569;
 
+const C14_IP: f64 = 100.45;
+const C15_IP: f64 = 33.193;
+const C16_IP: f64 = 2.319;
+const C17_IP: f64 = 0.17074;
+const C18_IP: f64 = 1.2063;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Moist Air
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -598,7 +604,6 @@ fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: Uni
     let saturation_pressure =
         pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
     let f = |t: f64| {
-        println!("t: {}", t);
         let saturated_water_vapor = SaturatedWaterVapor::new(t, unit);
         saturated_water_vapor.saturation_pressure() - saturation_pressure
     };
@@ -611,15 +616,35 @@ fn t_dew_point_from_humidity_ratio(humidity_ratio: f64, pressure: f64, unit: Uni
         max_iter: 50,
     };
 
-    let partial_water_vapor_pressure =
-        0.001 * humidity_ratio * pressure / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
+    let partial_water_vapor_pressure = match unit {
+        UnitSystem::SI => {
+            // pressure in kPa
+            0.001 * humidity_ratio * pressure / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio)
+        }
+        UnitSystem::IP => humidity_ratio * pressure / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio),
+    };
+
     let alpha = partial_water_vapor_pressure.ln();
-    let t_above = C14_SI
-        + C15_SI * alpha
-        + C16_SI * alpha.powi(2)
-        + C17_SI * alpha.powi(3)
-        + C18_SI * partial_water_vapor_pressure.powf(0.1984);
-    let t_below = 6.09 + 12.608 * alpha + 0.4959 * alpha.powi(2);
+    let t_above = match unit {
+        UnitSystem::IP => {
+            C14_IP
+                + C15_IP * alpha
+                + C16_IP * alpha.powi(2)
+                + C17_IP * alpha.powi(3)
+                + C18_IP * partial_water_vapor_pressure.powf(0.1984)
+        }
+        UnitSystem::SI => {
+            C14_SI
+                + C15_SI * alpha
+                + C16_SI * alpha.powi(2)
+                + C17_SI * alpha.powi(3)
+                + C18_SI * partial_water_vapor_pressure.powf(0.1984)
+        }
+    };
+    let t_below = match unit {
+        UnitSystem::IP => 90.12 + 26.142 * alpha + 0.8927 * alpha.powi(2),
+        UnitSystem::SI => 6.09 + 12.608 * alpha + 0.4959 * alpha.powi(2),
+    };
     let t_init = match (t_above >= 0.0, t_below >= 0.0) {
         (true, true) => t_above,
         (false, false) => t_below,
@@ -808,7 +833,7 @@ mod tests {
 
     #[test]
     fn test_t_dew_point() {
-        let t_dew_point = t_dew_point_from_humidity_ratio(0.001, 101325.0, UnitSystem::SI);
+        let t_dew_point = t_dew_point_from_humidity_ratio(0.001, 101325.0, UnitSystem::IP);
         assert_relative_eq!(t_dew_point, -15.2, max_relative = 1.0E-6);
     }
 }
