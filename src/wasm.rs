@@ -23,6 +23,7 @@ pub struct WasmPoint {
 /// - temperatures: temperature array in \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
 /// - humidity ratios: corresponding humidity ratio array in \\( \\mathrm{kg_w / kg_{da}} \\) (SI) or \\( \\mathrm{lb_w / lb_{da}} \\) (IP)
 #[wasm_bindgen]
+#[allow(non_snake_case)]
 pub fn relativeHumidityLine(
     phi: f64,
     pressure: f64,
@@ -74,6 +75,7 @@ pub fn relativeHumidityLine(
 /// - \\(h\\) is specific enthalpy
 ///
 #[wasm_bindgen]
+#[allow(non_snake_case)]
 pub fn specificEnthalpyLine(
     h: f64,
     pressure: f64,
@@ -116,6 +118,7 @@ impl WasmMoistAir {
     /// * `pressure` - Atmospheric pressure (Pa for SI, Psi for IP)
     /// * `is_si` - true for SI units, false for IP
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn fromRelativeHumidity(
         t_dry_bulb: f64,
         relative_humidity: f64,
@@ -144,6 +147,7 @@ impl WasmMoistAir {
     /// * `pressure` - Atmospheric pressure (Pa for SI, Psi for IP)
     /// * `is_si` - true for SI units, false for IP
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn fromHumidityRatio(
         t_dry_bulb: f64,
         humidity_ratio: f64,
@@ -162,6 +166,7 @@ impl WasmMoistAir {
 
     /// Creates a new WasmMoistAir instance from dry-bulb temperature and specific enthalpy.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn fromSpecificEnthalpy(
         t_dry_bulb: f64,
         specific_enthalpy: f64,
@@ -180,6 +185,7 @@ impl WasmMoistAir {
 
     /// Returns the current wet-bulb temperature.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn fromTWetBulb(
         t_dry_bulb: f64,
         t_wet_bulb: f64,
@@ -197,6 +203,7 @@ impl WasmMoistAir {
 
     /// Returns the current dew-point temperature.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn fromTDewPoint(
         t_dry_bulb: f64,
         t_dew_point: f64,
@@ -214,36 +221,42 @@ impl WasmMoistAir {
 
     /// Returns the current dry-bulb temperature.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn tDryBulb(&self) -> f64 {
         self.inner.t_dry_bulb()
     }
 
     /// Returns the current humidity ratio.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn humidityRatio(&self) -> f64 {
         self.inner.humidity_ratio()
     }
 
     /// Returns the specific enthalpy.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn specificEnthalpy(&self) -> f64 {
         self.inner.specific_enthalpy()
     }
 
     /// Returns the relative humidity.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn relativeHumidity(&self) -> f64 {
         self.inner.relative_humidity()
     }
 
     /// Returns the wet-bulb temperature.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn tWetBulb(&self) -> f64 {
         self.inner.t_wet_bulb()
     }
 
     /// Returns the dew-point temperature.
     #[wasm_bindgen]
+    #[allow(non_snake_case)]
     pub fn tDewPoint(&self) -> f64 {
         self.inner.t_dew_point()
     }
