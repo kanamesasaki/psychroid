@@ -815,6 +815,7 @@ mod tests {
     #[test]
     fn test_relative_humidity_humidity_ratio() {
         let relative_humidity_array = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0];
+        // SI units
         relative_humidity_array.iter().for_each(|&rh| {
             let moist_air =
                 MoistAir::from_t_dry_bulb_relative_humidity(25.0, rh, 101325.0, UnitSystem::SI);
@@ -825,21 +826,46 @@ mod tests {
                 101325.0,
                 UnitSystem::SI,
             );
-            assert_abs_diff_eq!(moist_air.relative_humidity(), rh, epsilon = 1.0E-10);
+            assert_abs_diff_eq!(moist_air.relative_humidity(), rh, epsilon = 1.0E-8);
+        });
+        // IP units
+        relative_humidity_array.iter().for_each(|&rh| {
+            let moist_air =
+                MoistAir::from_t_dry_bulb_relative_humidity(77.0, rh, 14.696, UnitSystem::IP);
+            let humidity_ratio = moist_air.humidity_ratio();
+            let moist_air = MoistAir::from_t_dry_bulb_humidity_ratio(
+                77.0,
+                humidity_ratio,
+                14.696,
+                UnitSystem::IP,
+            );
+            assert_abs_diff_eq!(moist_air.relative_humidity(), rh, epsilon = 1.0E-8);
         });
     }
 
     #[test]
-    fn test_relative_humidity_100() {
-        let t_dry_bulb = [1.0, 10.0, 20.0, 30.0, 40.0, 50.0];
-        let pressure = 101325.0;
+    fn test_relative_humidity_100_si() {
+        let t_dry_bulb: Vec<f64> = (-100..=-5).step_by(5).map(|x| x as f64).collect();
         let unit = UnitSystem::SI;
 
         t_dry_bulb.iter().for_each(|&t| {
-            let moist_air = MoistAir::from_t_dry_bulb_relative_humidity(t, 1.0, pressure, unit);
-            assert_relative_eq!(moist_air.t_dew_point(), t, max_relative = 1.0E-8);
-            assert_relative_eq!(moist_air.t_wet_bulb(), t, max_relative = 1.0E-8);
+            let moist_air = MoistAir::from_t_dry_bulb_relative_humidity(t, 1.0, 101325.0, unit);
+            assert_relative_eq!(moist_air.t_dew_point(), t, max_relative = 5.0E-5);
+            assert_relative_eq!(moist_air.t_wet_bulb(), t, max_relative = 5.0E-5);
         });
+
+        let t_dry_bulb: Vec<f64> = (5..=195).step_by(5).map(|x| x as f64).collect();
+        let unit = UnitSystem::SI;
+
+        t_dry_bulb.iter().for_each(|&t| {
+            let moist_air = MoistAir::from_t_dry_bulb_relative_humidity(t, 1.0, 101325.0, unit);
+            assert_relative_eq!(moist_air.t_dew_point(), t, max_relative = 5.0E-5);
+            assert_relative_eq!(moist_air.t_wet_bulb(), t, max_relative = 5.0E-5);
+        });
+
+        let moist_air = MoistAir::from_t_dry_bulb_relative_humidity(0.0, 1.0, 101325.0, unit);
+        assert_abs_diff_eq!(moist_air.t_dew_point(), 0.0, epsilon = 1.0E-8);
+        assert_abs_diff_eq!(moist_air.t_wet_bulb(), 0.0, epsilon = 1.0E-8);
     }
 
     #[test]

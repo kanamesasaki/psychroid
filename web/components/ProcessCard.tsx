@@ -12,50 +12,50 @@ import {
     SelectItem,
 } from "@/components/ui/select";
 import { Label } from "./ui/label";
+import { Process } from "@/app/page";
+import { on } from "events";
 
-export interface ProcessData {
-    id: number;
-    processType: string;
-    // 他に必要なデータがあれば追加
-}
 
 interface ProcessCardProps {
-    processData: ProcessData;
-    onChange: (data: ProcessData) => void;
+    processData: Process;
+    onChange: (data: Process) => void;
 }
 
 const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
-    const [processType, setProcessType] = useState<string>(processData.processType);
-    const [inputType, setInputType] = useState<string>("Power");
-    const [inputValue, setInputValue] = useState<string>("0.0");
-
-
     const handleProcessTypeChange = (value: string) => {
-        setProcessType(value);
-        // Process の種類を変更したら入力値をリセットする例
-        setInputValue("0.0");
-        onChange({ ...processData, processType: value });
+        let inputType: string = "";
+        if (value === "Heating" || value === "Cooling") {
+            inputType = "Power";
+        } else if (value === "Humidify") {
+            inputType = "dw_adeabatic";
+        }
+
+        processData.processType = value;
+        processData.inputType = inputType;
+        processData.value = 0.0;
+
+        onChange(processData);
     };
 
-    // const handleInputChange = (
-    //     e: React.ChangeEvent<HTMLInputElement>,
-    //     field: string
-    // ) => {
-    //     const newValues = { ...inputValues, [field]: e.target.value };
-    //     setInputValues(newValues);
-    //     // 必要に応じて onChange で上位コンポーネントへ通知
-    //     onChange({ ...processData, processType, /* その他の値 */ });
-    // };
+    const handleInputTypeChange = (value: string) => {
+        processData.inputType = value;
+        onChange(processData);
+    };
+
+    const handleValueChange = (value: string) => {
+        processData.value = Number(value);
+        onChange(processData);
+    };
 
     const renderInputs = () => {
-        switch (processType) {
+        switch (processData.processType) {
             case "Heating":
                 return (
                     <div className="grid grid-cols-2 gap-4">
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -68,7 +68,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={inputType} onValueChange={(value: string) => setInputType(value)}>
+                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -83,12 +83,12 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
+                                {processData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                value={processData.value}
+                                onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
                         </div>
@@ -100,7 +100,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -113,7 +113,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={inputType} onValueChange={(value: string) => setInputType(value)}>
+                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -128,12 +128,12 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
+                                {processData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                value={processData.value}
+                                onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
                         </div>
@@ -145,7 +145,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -158,7 +158,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={inputType} onValueChange={(value: string) => setInputType(value)}>
+                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -173,12 +173,12 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {inputType === "dw_adeabatic" ? "ΔW Adeabatic [kg/kg]" : "ΔW Isotherm [kg/kg]"}
+                                {processData.inputType === "dw_adeabatic" ? "ΔW Adeabatic [kg/kg]" : "ΔW Isotherm [kg/kg]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={inputValue}
-                                onChange={(e) => setInputValue(e.target.value)}
+                                value={processData.value}
+                                onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
                         </div>
@@ -197,9 +197,9 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
             <CardContent>
                 <div className="flex flex-col gap-4">
                     {renderInputs()}
-                    <Button type="button" onClick={() => console.log("Process Applied")}>
+                    {/* <Button type="button" onClick={() => console.log("Process Applied")}>
                         Apply Process
-                    </Button>
+                    </Button> */}
                 </div>
             </CardContent>
         </Card>

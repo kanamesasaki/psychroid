@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from "react";
 import Initialization from "../components/Initialization";
 import Chart from "../components/Chart";
-import Process from "../components/Process";
 import Header from "../components/Header";
 import StateTable from "../components/StateTable";
 import init, { relativeHumidityLine, specificEnthalpyLine, WasmMoistAir } from '@/lib/psychroid';
+import ProcessArray from "../components/ProcessArray";
 
 export type Point = {
   x: number; // Dry-bulb temperature in °C 
@@ -37,8 +37,9 @@ export type State = {
 }
 
 export type Process = {
+  id: number;
   processType: string; // heating, cooling, humidification
-  parameterType: string;
+  inputType: string;
   value: number;
 };
 
@@ -140,6 +141,24 @@ const Page = () => {
     console.log("Initialized:", initialState);
   };
 
+  const handleApplyProcesses = (processes: Process[]) => {
+    setProcesses(processes);
+    console.log("Processes:", processes);
+  };
+
+  const calculateNextState = (prev: State, proc: Process) => {
+    let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
+    let next = {
+      tDryBulb: 0.0,
+      humidityRatio: 0.0,
+      tWetBulb: 0.0,
+      tDewPoint: 0.0,
+      relativeHumidity: 0.0,
+      enthalpy: 0.0
+    } as State;
+    return next;
+  };
+
   // Update states whenever initialState changes
   useEffect(() => {
     if (wasmInitialized) {
@@ -187,7 +206,7 @@ const Page = () => {
         </div>
         <div className="col-span-1 md:col-span-5">
           <Initialization onInitialize={handleInitialize} />
-          <Process />
+          <ProcessArray onApplyProcesses={handleApplyProcesses} />
         </div>
       </div>
     </main>

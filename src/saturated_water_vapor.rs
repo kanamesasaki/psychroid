@@ -52,12 +52,12 @@ impl SaturatedWaterVapor {
     pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Self {
         match unit {
             UnitSystem::IP => {
-                if !((-148.0..392.0).contains(&t_dry_bulb)) {
+                if !((-148.0..=392.0).contains(&t_dry_bulb)) {
                     panic!("Dry bulb temperature is out of range");
                 }
             }
             UnitSystem::SI => {
-                if !((-100.0..200.0).contains(&t_dry_bulb)) {
+                if !((-100.0..=200.0).contains(&t_dry_bulb)) {
                     panic!("Dry bulb temperature is out of range");
                 }
             }
