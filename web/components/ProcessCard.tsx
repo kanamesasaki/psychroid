@@ -22,6 +22,8 @@ interface ProcessCardProps {
 }
 
 const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
+    let localProcessData: Process = processData;
+
     const handleProcessTypeChange = (value: string) => {
         let inputType: string = "";
         if (value === "Heating" || value === "Cooling") {
@@ -30,32 +32,32 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
             inputType = "dw_adeabatic";
         }
 
-        processData.processType = value;
-        processData.inputType = inputType;
-        processData.value = 0.0;
+        localProcessData.processType = value;
+        localProcessData.inputType = inputType;
+        localProcessData.value = 0.0;
 
-        onChange(processData);
+        onChange(localProcessData);
     };
 
     const handleInputTypeChange = (value: string) => {
-        processData.inputType = value;
-        onChange(processData);
+        localProcessData.inputType = value;
+        onChange(localProcessData);
     };
 
     const handleValueChange = (value: string) => {
-        processData.value = Number(value);
-        onChange(processData);
+        localProcessData.value = Number(value);
+        onChange(localProcessData);
     };
 
     const renderInputs = () => {
-        switch (processData.processType) {
+        switch (localProcessData.processType) {
             case "Heating":
                 return (
                     <div className="grid grid-cols-2 gap-4">
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={localProcessData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -68,7 +70,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
+                            <Select value={localProcessData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -83,11 +85,11 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {processData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
+                                {localProcessData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={processData.value}
+                                value={localProcessData.value}
                                 onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
@@ -100,7 +102,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={localProcessData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -113,7 +115,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
+                            <Select value={localProcessData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -128,11 +130,11 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {processData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
+                                {localProcessData.inputType === "Power" ? "Power [kW]" : "ΔT [°C]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={processData.value}
+                                value={localProcessData.value}
                                 onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
@@ -145,7 +147,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
-                            <Select value={processData.processType} onValueChange={handleProcessTypeChange}>
+                            <Select value={localProcessData.processType} onValueChange={handleProcessTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
@@ -158,7 +160,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         </div>
                         <div>
                             <Label>Input Type</Label>
-                            <Select value={processData.inputType} onValueChange={handleInputTypeChange}>
+                            <Select value={localProcessData.inputType} onValueChange={handleInputTypeChange}>
                                 <SelectTrigger>
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
@@ -173,11 +175,11 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {processData.inputType === "dw_adeabatic" ? "ΔW Adeabatic [kg/kg]" : "ΔW Isotherm [kg/kg]"}
+                                {localProcessData.inputType === "dw_adeabatic" ? "ΔW Adeabatic [kg/kg]" : "ΔW Isotherm [kg/kg]"}
                             </Label>
                             <Input
                                 type="number"
-                                value={processData.value}
+                                value={localProcessData.value}
                                 onChange={(e) => handleValueChange(e.target.value)}
                                 placeholder={"0.0"}
                             />
@@ -192,7 +194,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
     return (
         <Card className="w-full">
             <CardHeader>
-                <CardTitle>Process Settings</CardTitle>
+                <CardTitle>Process Settings: {localProcessData.id} &#8211; {localProcessData.id + 1}</CardTitle>
             </CardHeader>
             <CardContent>
                 <div className="flex flex-col gap-4">

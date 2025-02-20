@@ -351,22 +351,26 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             .style('font-size', '12px')
             .style('pointer-events', 'none');
 
-        // Add circle for initial state
-        svg.selectAll('.initial-state-point').remove();
-        svg.append('circle')
-            .attr('cx', xScale(states[0].tDryBulb))
-            .attr('cy', yScale(states[0].humidityRatio))
+        // Remove existing points
+        svg.selectAll('.state-point').remove();
+
+        svg.selectAll('.state-point')
+            .data(states)
+            .enter()
+            .append('circle')
+            .attr('cx', d => xScale(d.tDryBulb))
+            .attr('cy', d => yScale(d.humidityRatio))
             .attr('r', 3)
             .attr('fill', 'white')
             .attr('stroke', 'black')
             .attr('stroke-width', 2)
-            .attr('class', 'initial-state-point')
-            .on('mouseover', (event) => {
+            .attr('class', 'state-point')
+            .on('mouseover', (event, d) => {
                 tooltip.transition()
                     .duration(200)
-                    .style('opacity', .9);
-                tooltip.html(`Dry-Bulb Temperature: ${states[0].tDryBulb.toFixed(1)}°C<br/>` +
-                    `Humidity Ratio: ${states[0].humidityRatio.toFixed(4)} kg/kg`)
+                    .style('opacity', 0.9);
+                tooltip.html(`Dry-Bulb Temperature: ${d.tDryBulb.toFixed(1)}°C<br/>` +
+                    `Humidity Ratio: ${d.humidityRatio.toFixed(4)} kg/kg`)
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 28) + 'px');
             })
@@ -375,7 +379,6 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                     .duration(500)
                     .style('opacity', 0);
             });
-        console.log('Initial state:', states[0]);
 
     }, [states, chartInit]);
 

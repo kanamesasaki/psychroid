@@ -260,4 +260,25 @@ impl WasmMoistAir {
     pub fn tDewPoint(&self) -> f64 {
         self.inner.t_dew_point()
     }
+
+    /// Returns the moist air density.
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn density(&self) -> f64 {
+        self.inner.density()
+    }
+
+    /// Heating process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn heatingPower(&mut self, mda: f64, power: f64) {
+        self.inner.heating_q(mda, power);
+    }
+
+    /// Heating process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn heatingTemperature(&mut self, mda: f64, t: f64) {
+        self.inner.heating_q(mda, t);
+    }
 }

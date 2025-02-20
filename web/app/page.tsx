@@ -34,6 +34,7 @@ export type State = {
   tDewPoint: number;
   relativeHumidity: number;
   enthalpy: number;
+  density: number;
 }
 
 export type Process = {
@@ -54,7 +55,7 @@ const Page = () => {
   const [initialState, setInitialState] = React.useState<InitialState>(
     {
       pressure: 101325,
-      massFlow: 10000.0,
+      massFlow: 3.3333,
       parameterType1: "t_dry_bulb",
       value1: 30.0,
       parameterType2: "humidity_ratio",
@@ -148,13 +149,18 @@ const Page = () => {
 
   const calculateNextState = (prev: State, proc: Process) => {
     let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
+    if (proc.processType === "Heating" && proc.inputType === "Power") {
+      moistAir.heatingPower(proc.value, initialState.massFlow);
+      console.log("tDryBulb:", prev.tDryBulb, moistAir.tDryBulb(), moistAir.humidityRatio(), initialState.massFlow, proc.value);
+    }
     let next = {
-      tDryBulb: 0.0,
-      humidityRatio: 0.0,
-      tWetBulb: 0.0,
-      tDewPoint: 0.0,
-      relativeHumidity: 0.0,
-      enthalpy: 0.0
+      tDryBulb: moistAir.tDryBulb(),
+      humidityRatio: moistAir.humidityRatio(),
+      tWetBulb: moistAir.tWetBulb(),
+      tDewPoint: moistAir.tDewPoint(),
+      relativeHumidity: moistAir.relativeHumidity(),
+      enthalpy: moistAir.specificEnthalpy(),
+      density: moistAir.density()
     } as State;
     return next;
   };
@@ -187,13 +193,22 @@ const Page = () => {
         tWetBulb: moistAir.tWetBulb(),
         tDewPoint: moistAir.tDewPoint(),
         relativeHumidity: moistAir.relativeHumidity(),
-        enthalpy: moistAir.specificEnthalpy()
+        enthalpy: moistAir.specificEnthalpy(),
+        density: moistAir.density()
       }
       stateArray.push(state0);
+
+      processes.map((proc, index) => {
+        const prevState = stateArray[index];
+        const nextState = calculateNextState(prevState, proc);
+        // const nextState = prevState;
+        stateArray.push(nextState);
+      })
+
       setStates(stateArray);
-      console.log("States:", states);
+      console.log("States:", stateArray);
     }
-  }, [initialState, wasmInitialized]);
+  }, [initialState, wasmInitialized, processes]);
 
   return (
     // padding: 1.5rem; /* 24px */

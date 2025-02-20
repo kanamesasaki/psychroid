@@ -26,7 +26,7 @@ import { Label } from "./ui/label";
 // onInitialize: props として渡される関数
 export default function Initialization({ onInitialize }: { onInitialize: (initialStateInput: InitialState) => void }) {
     const [pressureInput, setPressureInput] = useState<string>("101325.0");
-    const [flowRateInput, setFlowRateInput] = useState<string>("1000.0");
+    const [flowRateInput, setFlowRateInput] = useState<string>("3.3333");
     const [inputValue1, setInputValue1] = useState<string>("30.0");
     const [inputType2, setInputType2] = useState<string>("humidity_ratio");
     const [inputValue2, setInputValue2] = useState<string>("0.01");

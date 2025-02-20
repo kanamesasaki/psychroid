@@ -245,6 +245,13 @@ impl MoistAir {
         )
     }
 
+    pub fn density(&self) -> f64 {
+        let specific_volume =
+            0.287042 * (self.t_dry_bulb + 273.15) * (1.0 + 1.607858 * self.humidity_ratio)
+                / (self.pressure * 0.001);
+        1.0 / specific_volume * (1.0 + self.humidity_ratio)
+    }
+
     /// Changes the unit system and converts all properties to the new unit system
     ///
     /// # Arguments
@@ -350,7 +357,7 @@ impl MoistAir {
     /// # Note
     /// This provides an initial estimate and may need iteration for precise results
     pub fn heating_q(&mut self, mda: f64, q: f64) {
-        let dh = q / mda;
+        let dh = q / mda; // kJ/s
         let dt = match self.unit {
             UnitSystem::SI => dh / (1.006 + 1.860 * self.humidity_ratio),
             UnitSystem::IP => dh / (0.240 + 0.444 * self.humidity_ratio),
@@ -895,7 +902,15 @@ mod tests {
 
     #[test]
     fn test_t_dew_point() {
-        let t_dew_point = t_dew_point_from_humidity_ratio(0.1, 14.696, UnitSystem::IP);
+        let t_dew_point = t_dew_point_from_humidity_ratio(0.00001, 14.696, UnitSystem::IP);
         assert_relative_eq!(t_dew_point, -42.123, max_relative = 1.0E-6);
+    }
+
+    #[test]
+    fn test_heating_q() {
+        let mut moist_air =
+            MoistAir::from_t_dry_bulb_humidity_ratio(15.0, 0.01, 101325.0, UnitSystem::SI);
+        moist_air.heating_q(12000.0 / 3600.0, 70.0);
+        assert_relative_eq!(moist_air.t_dry_bulb, 25.0, max_relative = 1.0E-6);
     }
 }
