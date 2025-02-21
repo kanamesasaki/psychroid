@@ -369,7 +369,8 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                 tooltip.transition()
                     .duration(200)
                     .style('opacity', 0.9);
-                tooltip.html(`Dry-Bulb Temperature: ${d.tDryBulb.toFixed(1)}°C<br/>` +
+                tooltip.html(`ID: ${d.id}<br/>` +
+                    `Dry-Bulb Temperature: ${d.tDryBulb.toFixed(1)}°C<br/>` +
                     `Humidity Ratio: ${d.humidityRatio.toFixed(4)} kg/kg`)
                     .style('left', (event.pageX + 10) + 'px')
                     .style('top', (event.pageY - 28) + 'px');
@@ -379,6 +380,17 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                     .duration(500)
                     .style('opacity', 0);
             });
+
+        svg.selectAll('.state-label')
+            .data(states)
+            .enter()
+            .append('text')
+            .attr('class', 'state-label')
+            .attr('x', d => xScale(d.tDryBulb) + 3.5)
+            .attr('y', d => yScale(d.humidityRatio) - 3.5)
+            .attr('font-size', '7px')
+            .attr('fill', 'black')
+            .text(d => d.id);
 
     }, [states, chartInit]);
 

@@ -28,6 +28,7 @@ export type InitialState = {
 };
 
 export type State = {
+  id: number;
   tDryBulb: number;
   humidityRatio: number;
   tWetBulb: number;
@@ -154,6 +155,7 @@ const Page = () => {
       console.log("tDryBulb:", prev.tDryBulb, moistAir.tDryBulb(), moistAir.humidityRatio(), initialState.massFlow, proc.value);
     }
     let next = {
+      id: prev.id + 1,
       tDryBulb: moistAir.tDryBulb(),
       humidityRatio: moistAir.humidityRatio(),
       tWetBulb: moistAir.tWetBulb(),
@@ -188,6 +190,7 @@ const Page = () => {
       }
 
       const state0: State = {
+        id: 0,
         tDryBulb: moistAir.tDryBulb(),
         humidityRatio: moistAir.humidityRatio(),
         tWetBulb: moistAir.tWetBulb(),
