@@ -151,8 +151,14 @@ const Page = () => {
   const calculateNextState = (prev: State, proc: Process) => {
     let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
     if (proc.processType === "Heating" && proc.inputType === "Power") {
-      moistAir.heatingPower(proc.value, initialState.massFlow);
-      console.log("tDryBulb:", prev.tDryBulb, moistAir.tDryBulb(), moistAir.humidityRatio(), initialState.massFlow, proc.value);
+      moistAir.heatingPower(initialState.massFlow, proc.value);
+    } else if (proc.processType === "Heating" && proc.inputType === "ΔT") {
+      let q = moistAir.heatingDeltaTemperature(initialState.massFlow, proc.value);
+      console.log("Heating with ΔT:", proc.value, moistAir.tDryBulb(), q);
+    } else if (proc.processType === "Cooling" && proc.inputType === "Power") {
+      moistAir.coolingPower(initialState.massFlow, proc.value);
+    } else if (proc.processType === "Cooling" && proc.inputType === "ΔT") {
+      moistAir.coolingDeltaTemperature(initialState.massFlow, proc.value);
     }
     let next = {
       id: prev.id + 1,

@@ -353,7 +353,6 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
 
         // Remove existing points
         svg.selectAll('.state-point').remove();
-
         svg.selectAll('.state-point')
             .data(states)
             .enter()
@@ -381,6 +380,7 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                     .style('opacity', 0);
             });
 
+        svg.selectAll('.state-label').remove();
         svg.selectAll('.state-label')
             .data(states)
             .enter()
