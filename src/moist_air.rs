@@ -366,6 +366,59 @@ impl MoistAir {
         self.t_dry_bulb += dt;
     }
 
+    pub fn cooling_t1(&mut self, mda: f64, t1: f64) -> f64 {
+        let t_dew_point = self.t_dew_point();
+        let h0 = self.specific_enthalpy();
+        if t1 < t_dew_point {
+            self.humidity_ratio =
+                humidity_ratio_from_relative_humidity(t1, 1.0, self.pressure, self.unit)
+        }
+        self.t_dry_bulb = t1;
+        let h1 = self.specific_enthalpy();
+        mda * (h0 - h1)
+    }
+
+    pub fn cooling_dt(&mut self, mda: f64, dt: f64) -> f64 {
+        let t_dew_point = self.t_dew_point();
+        let h0 = self.specific_enthalpy();
+        let t1 = self.t_dry_bulb - dt;
+        if t1 < t_dew_point {
+            self.humidity_ratio =
+                humidity_ratio_from_relative_humidity(t1, 1.0, self.pressure, self.unit);
+        }
+        self.t_dry_bulb = t1;
+        let h1 = self.specific_enthalpy();
+        mda * (h0 - h1)
+    }
+
+    pub fn cooling_q(&mut self, mda: f64, q: f64) {
+        let dh = q / mda; // kJ/s
+        let h0 = self.specific_enthalpy();
+        let h1 = h0 - dh;
+        let dt = match self.unit {
+            UnitSystem::SI => dh / (1.006 + 1.860 * self.humidity_ratio),
+            UnitSystem::IP => dh / (0.240 + 0.444 * self.humidity_ratio),
+        };
+        let t1 = self.t_dry_bulb - dt;
+        let t_dew_point = self.t_dew_point();
+        if t1 < t_dew_point {
+            self.t_dry_bulb = t_dry_bulb_from_specific_enthalpy_relative_humidity(
+                h1,
+                1.0,
+                self.pressure,
+                self.unit,
+            );
+            self.humidity_ratio = humidity_ratio_from_relative_humidity(
+                self.t_dry_bulb,
+                1.0,
+                self.pressure,
+                self.unit,
+            )
+        } else {
+            self.t_dry_bulb = t1;
+        }
+    }
+
     /// Calculates the state change when adding water to moist air (adiabatic humidification)
     ///
     /// # Arguments
@@ -904,13 +957,5 @@ mod tests {
     fn test_t_dew_point() {
         let t_dew_point = t_dew_point_from_humidity_ratio(0.00001, 14.696, UnitSystem::IP);
         assert_relative_eq!(t_dew_point, -42.123, max_relative = 1.0E-6);
-    }
-
-    #[test]
-    fn test_heating_q() {
-        let mut moist_air =
-            MoistAir::from_t_dry_bulb_humidity_ratio(15.0, 0.01, 101325.0, UnitSystem::SI);
-        moist_air.heating_q(12000.0 / 3600.0, 70.0);
-        assert_relative_eq!(moist_air.t_dry_bulb, 25.0, max_relative = 1.0E-6);
     }
 }

@@ -278,7 +278,21 @@ impl WasmMoistAir {
     /// Heating process
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn heatingTemperature(&mut self, mda: f64, t: f64) {
-        self.inner.heating_q(mda, t);
+    pub fn heatingDeltaTemperature(&mut self, mda: f64, dt: f64) -> f64 {
+        self.inner.heating_dt(mda, dt)
+    }
+
+    /// Cooling process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn coolingPower(&mut self, mda: f64, power: f64) {
+        self.inner.cooling_q(mda, power);
+    }
+
+    /// Cooling process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn coolingDeltaTemperature(&mut self, mda: f64, dt: f64) -> f64 {
+        self.inner.cooling_dt(mda, dt)
     }
 }
