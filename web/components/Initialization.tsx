@@ -44,6 +44,25 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
         onInitialize(initialStateInput);
     };
 
+    const getRangeForInputType = (inputType: string) => {
+        switch (inputType) {
+            case "humidity_ratio":
+                return { min: 0, max: 1 };
+            case "relative_humidity":
+                return { min: 0, max: 1 };
+            case "t_wet_bulb":
+                return { min: -100, max: 200 };
+            case "t_dew_point":
+                return { min: -100, max: 200 };
+            case "specific_enthalpy":
+                return { min: 0, max: 500 };
+            default:
+                return { min: 0, max: 1 };
+        }
+    };
+
+    const { min, max } = getRangeForInputType(inputType2);
+
     return (
         <Card className="w-full mb-4">
             <CardHeader>
@@ -59,7 +78,7 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 type="number"
                                 value={pressureInput}
                                 onChange={(e) => setPressureInput(e.target.value)}
-                                placeholder="101325"
+                                placeholder="101325.0"
                             />
                         </div>
                         <div>
@@ -78,6 +97,8 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 value={inputValue1}
                                 onChange={(e) => setInputValue1(e.target.value)}
                                 placeholder="30.0"
+                                min="-100"
+                                max="200"
                             />
                         </div>
                         <div className="space-y-1">
@@ -101,6 +122,8 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 value={inputValue2}
                                 onChange={(e) => setInputValue2(e.target.value)}
                                 placeholder="0.01"
+                                min={min}
+                                max={max}
                             />
                         </div>
                     </div>
