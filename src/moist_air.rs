@@ -444,9 +444,9 @@ impl MoistAir {
     ///
     /// # Note
     /// This method modifies both temperature and humidity ratio of the instance
-    pub fn humidify(&mut self, mda: f64, water: f64) {
+    pub fn humidify_adiabatic(&mut self, mda: f64, water: f64) {
         let w0 = self.humidity_ratio;
-        let w1 = self.humidity_ratio + water / mda;
+        let w1 = w0 + water / mda;
         self.t_dry_bulb = match self.unit {
             UnitSystem::SI => {
                 ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2051.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
@@ -455,6 +455,11 @@ impl MoistAir {
                 ((0.240 + 0.444 * w0) * self.t_dry_bulb - 1061.0 * (w1 - w0)) / (0.240 + 0.444 * w1)
             }
         };
+        self.humidity_ratio = w1;
+    }
+
+    pub fn humidify_isothermal(&mut self, mda: f64, water: f64) {
+        let w1 = self.humidity_ratio + water / mda;
         self.humidity_ratio = w1;
     }
 

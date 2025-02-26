@@ -26,6 +26,7 @@ import { Label } from "./ui/label";
 // onInitialize: props として渡される関数
 export default function Initialization({ onInitialize }: { onInitialize: (initialStateInput: InitialState) => void }) {
     const [pressureInput, setPressureInput] = useState<string>("101325.0");
+    const [flowRateType, setFlowRateType] = useState<string>("dry_air_mass_flow_rate");
     const [flowRateInput, setFlowRateInput] = useState<string>("3.3333");
     const [inputValue1, setInputValue1] = useState<string>("30.0");
     const [inputType2, setInputType2] = useState<string>("humidity_ratio");
@@ -35,7 +36,8 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
         e.preventDefault();
         const initialStateInput: InitialState = {
             pressure: Number(pressureInput),
-            massFlow: Number(flowRateInput),
+            flowRateType: flowRateType,
+            flowRateValue: Number(flowRateInput),
             parameterType1: "t_dry_bulb",
             value1: Number(inputValue1),
             parameterType2: inputType2,
@@ -47,17 +49,17 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
     const getRangeForInputType = (inputType: string) => {
         switch (inputType) {
             case "humidity_ratio":
-                return { min: 0, max: 1 };
+                return { min: 0.0, max: 1.0 };
             case "relative_humidity":
-                return { min: 0, max: 1 };
+                return { min: 0.0, max: 1.0 };
             case "t_wet_bulb":
-                return { min: -100, max: 200 };
+                return { min: -100.0, max: 200.0 };
             case "t_dew_point":
-                return { min: -100, max: 200 };
+                return { min: -100.0, max: 200.0 };
             case "specific_enthalpy":
-                return { min: 0, max: 500 };
+                return { min: 0.0, max: 500.0 };
             default:
-                return { min: 0, max: 1 };
+                return { min: 0.0, max: 1.0 };
         }
     };
 
@@ -81,8 +83,20 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 placeholder="101325.0"
                             />
                         </div>
-                        <div>
-                            <Label>Air mass flow rate [kg/s]</Label>
+                        <div className="space-y-1">
+                            <Select onValueChange={setFlowRateType} defaultValue="dry_air_mass_flow_rate">
+                                <SelectTrigger className="w-full">
+                                    <SelectValue placeholder="dry_air_mass_flow_rate" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectGroup>
+                                        <SelectLabel>Select Input Type</SelectLabel>
+                                        <SelectItem value="total_air_mass_flow_rate">Total air mass flow rate [kg/s]</SelectItem>
+                                        <SelectItem value="dry_air_mass_flow_rate">Dry air mass flow rate [kg/s]</SelectItem>
+                                        <SelectItem value="volumetric_flow_rate">Volumetric flow rate [m³/s]</SelectItem>
+                                    </SelectGroup>
+                                </SelectContent>
+                            </Select>
                             <Input
                                 type="number"
                                 value={flowRateInput}
@@ -104,7 +118,7 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                         <div className="space-y-1">
                             <Select onValueChange={setInputType2} defaultValue="humidity_ratio">
                                 <SelectTrigger className="w-full">
-                                    <SelectValue placeholder="Humidity Ratio" />
+                                    <SelectValue placeholder="humidity_ratio" />
                                 </SelectTrigger>
                                 <SelectContent>
                                     <SelectGroup>
@@ -124,6 +138,7 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 placeholder="0.01"
                                 min={min}
                                 max={max}
+                                step="0.01"
                             />
                         </div>
                     </div>

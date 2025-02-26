@@ -295,4 +295,18 @@ impl WasmMoistAir {
     pub fn coolingDeltaTemperature(&mut self, mda: f64, dt: f64) -> f64 {
         self.inner.cooling_dt(mda, dt)
     }
+
+    /// Humidification process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn humidifyAdiabatic(&mut self, mda: f64, w: f64) {
+        self.inner.humidify_adiabatic(mda, w);
+    }
+
+    /// Humidification process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn humidifyIsothermal(&mut self, mda: f64, w: f64) {
+        self.inner.humidify_isothermal(mda, w);
+    }
 }

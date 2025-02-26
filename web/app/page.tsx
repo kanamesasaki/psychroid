@@ -20,7 +20,8 @@ export type Line = {
 
 export type InitialState = {
   pressure: number;
-  massFlow: number;
+  flowRateType: string;
+  flowRateValue: number;
   parameterType1: string; // t_dry_bulb
   value1: number;
   parameterType2: string; // humidity_ratio, relative_humidity, t_wet_bulb, t_dew_point, enthalpy
@@ -36,6 +37,7 @@ export type State = {
   relativeHumidity: number;
   enthalpy: number;
   density: number;
+  dryAirMassFlowRate: number;
 }
 
 export type Process = {
@@ -56,7 +58,8 @@ const Page = () => {
   const [initialState, setInitialState] = React.useState<InitialState>(
     {
       pressure: 101325,
-      massFlow: 3.3333,
+      flowRateType: "dry_air_mass_flow_rate",
+      flowRateValue: 3.3333,
       parameterType1: "t_dry_bulb",
       value1: 30.0,
       parameterType2: "humidity_ratio",
@@ -150,15 +153,21 @@ const Page = () => {
 
   const calculateNextState = (prev: State, proc: Process) => {
     let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
+    console.log("Volumetric flow rate:", prev.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
+
     if (proc.processType === "Heating" && proc.inputType === "Power") {
-      moistAir.heatingPower(initialState.massFlow, proc.value);
+      moistAir.heatingPower(prev.dryAirMassFlowRate, proc.value);
     } else if (proc.processType === "Heating" && proc.inputType === "ΔT") {
-      let q = moistAir.heatingDeltaTemperature(initialState.massFlow, proc.value);
+      let q = moistAir.heatingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
       console.log("Heating with ΔT:", proc.value, moistAir.tDryBulb(), q);
     } else if (proc.processType === "Cooling" && proc.inputType === "Power") {
-      moistAir.coolingPower(initialState.massFlow, proc.value);
+      moistAir.coolingPower(prev.dryAirMassFlowRate, proc.value);
     } else if (proc.processType === "Cooling" && proc.inputType === "ΔT") {
-      moistAir.coolingDeltaTemperature(initialState.massFlow, proc.value);
+      moistAir.coolingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
+    } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Adiabatic") {
+      moistAir.humidifyAdiabatic(prev.dryAirMassFlowRate, proc.value);
+    } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Isothermal") {
+      moistAir.humidifyIsothermal(prev.dryAirMassFlowRate, proc.value);
     }
     let next = {
       id: prev.id + 1,
@@ -168,8 +177,10 @@ const Page = () => {
       tDewPoint: moistAir.tDewPoint(),
       relativeHumidity: moistAir.relativeHumidity(),
       enthalpy: moistAir.specificEnthalpy(),
-      density: moistAir.density()
+      density: moistAir.density(),
+      dryAirMassFlowRate: prev.dryAirMassFlowRate
     } as State;
+    console.log("Volumetric flow rate:", next.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
     return next;
   };
 
@@ -195,6 +206,18 @@ const Page = () => {
         return
       }
 
+      let dryAirMassFlowRate: number;
+      if (initialState.flowRateType === "total_air_mass_flow_rate") {
+        dryAirMassFlowRate = initialState.flowRateValue * (1 + moistAir.humidityRatio());
+      } else if (initialState.flowRateType === "dry_air_mass_flow_rate") {
+        dryAirMassFlowRate = initialState.flowRateValue;
+      } else if (initialState.flowRateType === "volumetric_flow_rate") {
+        dryAirMassFlowRate = initialState.flowRateValue * moistAir.density() / (1 + moistAir.humidityRatio());
+      } else {
+        console.error("Invalid flow rate type");
+        return
+      }
+
       const state0: State = {
         id: 0,
         tDryBulb: moistAir.tDryBulb(),
@@ -203,7 +226,8 @@ const Page = () => {
         tDewPoint: moistAir.tDewPoint(),
         relativeHumidity: moistAir.relativeHumidity(),
         enthalpy: moistAir.specificEnthalpy(),
-        density: moistAir.density()
+        density: moistAir.density(),
+        dryAirMassFlowRate: dryAirMassFlowRate,
       }
       stateArray.push(state0);
 

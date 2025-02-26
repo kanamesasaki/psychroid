@@ -29,7 +29,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
         if (value === "Heating" || value === "Cooling") {
             inputType = "Power";
         } else if (value === "Humidify") {
-            inputType = "dw_adeabatic";
+            inputType = "ΔW Adiabatic";
         }
 
         localProcessData.processType = value;
@@ -165,8 +165,8 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="dw_adeabatic">ΔW Adeabatic</SelectItem>
-                                    <SelectItem value="dw_isotherm">ΔW Isotherm</SelectItem>
+                                    <SelectItem value="ΔW Adiabatic">ΔW Adiabatic</SelectItem>
+                                    <SelectItem value="ΔW Isothermal">ΔW Isothermal</SelectItem>
                                 </SelectContent>
                             </Select>
                         </div>
@@ -175,7 +175,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>{/* Left bottom is blank */}</div>
                         <div>
                             <Label>
-                                {localProcessData.inputType === "dw_adeabatic" ? "ΔW Adeabatic [kg/kg]" : "ΔW Isotherm [kg/kg]"}
+                                {localProcessData.inputType === "ΔW Adiabatic" ? "ΔW Adiabatic [kg/s]" : "ΔW Isotherm [kg/s]"}
                             </Label>
                             <Input
                                 type="number"
