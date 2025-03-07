@@ -21,6 +21,7 @@ const ProcessTable: React.FC<StateTableProps> = ({ states }) => {
                         <th className="px-4 py-2 border-b text-left">T<sub>wb</sub> (°C)</th>
                         <th className="px-4 py-2 border-b text-left">T<sub>dew</sub> (°C)</th>
                         <th className="px-4 py-2 border-b text-left">ρ (kg/m³)</th>
+                        <th className="px-4 py-2 border-b text-left">V (m³/s)</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -34,6 +35,7 @@ const ProcessTable: React.FC<StateTableProps> = ({ states }) => {
                             <td className="px-4 py-2 border-b">{state.tWetBulb.toFixed(2)}</td>
                             <td className="px-4 py-2 border-b">{state.tDewPoint.toFixed(2)}</td>
                             <td className="px-4 py-2 border-b">{state.density.toFixed(3)}</td>
+                            <td className="px-4 py-2 border-b">{(state.dryAirMassFlowRate * (1.0 + state.humidityRatio) / state.density).toFixed(3)}</td>
                         </tr>
                     ))}
                 </tbody>

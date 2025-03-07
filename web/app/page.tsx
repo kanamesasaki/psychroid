@@ -47,6 +47,22 @@ export type Process = {
   value: number;
 };
 
+export type ChartSettings = {
+  xMin: number;
+  xMax: number;
+  yMin: number;
+  yMax: number;
+};
+
+const initialStateDefault: InitialState = {
+  pressure: 101325,
+  flowRateType: "dry_air_mass_flow_rate",
+  flowRateValue: 3.3333,
+  parameterType1: "t_dry_bulb",
+  value1: 30.0,
+  parameterType2: "humidity_ratio",
+  value2: 0.01
+};
 
 const Page = () => {
   // WASM init state
@@ -55,17 +71,7 @@ const Page = () => {
   const [rhLines, setRhLines] = React.useState<Line[]>([]);
   const [enthalpyLines, setEnthalpyLines] = React.useState<Line[]>([]);
   // initial state
-  const [initialState, setInitialState] = React.useState<InitialState>(
-    {
-      pressure: 101325,
-      flowRateType: "dry_air_mass_flow_rate",
-      flowRateValue: 3.3333,
-      parameterType1: "t_dry_bulb",
-      value1: 30.0,
-      parameterType2: "humidity_ratio",
-      value2: 0.01
-    }
-  );
+  const [initialState, setInitialState] = React.useState<InitialState>(initialStateDefault);
   // Process array
   const [processes, setProcesses] = useState<Process[]>([]);
   // State array
@@ -189,32 +195,37 @@ const Page = () => {
     if (wasmInitialized) {
       const stateArray: State[] = [];
 
-      // Create moist air object based on the second input parameter
       let moistAir: WasmMoistAir;
-      if (initialState.parameterType2 === "humidity_ratio") {
-        moistAir = WasmMoistAir.fromHumidityRatio(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else if (initialState.parameterType2 === "relative_humidity") {
-        moistAir = WasmMoistAir.fromRelativeHumidity(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else if (initialState.parameterType2 === "t_wet_bulb") {
-        moistAir = WasmMoistAir.fromTWetBulb(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else if (initialState.parameterType2 === "t_dew_point") {
-        moistAir = WasmMoistAir.fromTDewPoint(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else if (initialState.parameterType2 === "specific_enthalpy") {
-        moistAir = WasmMoistAir.fromSpecificEnthalpy(initialState.value1, initialState.value2, initialState.pressure, true);
-      } else {
-        console.error("Invalid parameter type");
-        return
-      }
-
       let dryAirMassFlowRate: number;
-      if (initialState.flowRateType === "total_air_mass_flow_rate") {
-        dryAirMassFlowRate = initialState.flowRateValue * (1 + moistAir.humidityRatio());
-      } else if (initialState.flowRateType === "dry_air_mass_flow_rate") {
-        dryAirMassFlowRate = initialState.flowRateValue;
-      } else if (initialState.flowRateType === "volumetric_flow_rate") {
-        dryAirMassFlowRate = initialState.flowRateValue * moistAir.density() / (1 + moistAir.humidityRatio());
-      } else {
-        console.error("Invalid flow rate type");
+      try {
+        // Create moist air object based on the second input parameter
+        if (initialState.parameterType2 === "humidity_ratio") {
+          moistAir = WasmMoistAir.fromHumidityRatio(initialState.value1, initialState.value2, initialState.pressure, true);
+        } else if (initialState.parameterType2 === "relative_humidity") {
+          moistAir = WasmMoistAir.fromRelativeHumidity(initialState.value1, initialState.value2 * 0.01, initialState.pressure, true);
+        } else if (initialState.parameterType2 === "t_wet_bulb") {
+          moistAir = WasmMoistAir.fromTWetBulb(initialState.value1, initialState.value2, initialState.pressure, true);
+        } else if (initialState.parameterType2 === "t_dew_point") {
+          moistAir = WasmMoistAir.fromTDewPoint(initialState.value1, initialState.value2, initialState.pressure, true);
+        } else if (initialState.parameterType2 === "specific_enthalpy") {
+          moistAir = WasmMoistAir.fromSpecificEnthalpy(initialState.value1, initialState.value2, initialState.pressure, true);
+        } else {
+          throw new Error("Invalid parameter type");
+        }
+
+        if (initialState.flowRateType === "total_air_mass_flow_rate") {
+          dryAirMassFlowRate = initialState.flowRateValue * (1 + moistAir.humidityRatio());
+        } else if (initialState.flowRateType === "dry_air_mass_flow_rate") {
+          dryAirMassFlowRate = initialState.flowRateValue;
+        } else if (initialState.flowRateType === "volumetric_flow_rate") {
+          dryAirMassFlowRate = initialState.flowRateValue * moistAir.density() / (1 + moistAir.humidityRatio());
+        } else {
+          throw new Error("Invalid flow rate type");
+        }
+
+      } catch (err) {
+        console.error("Failed to create moist air object:", err);
+        setInitialState(initialStateDefault);
         return
       }
 

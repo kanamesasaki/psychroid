@@ -201,8 +201,13 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
 
         gridContainer.append('g')
             .attr('class', 'grid vertical-grid')
-            .attr('transform', `translate(0,${height - margin.bottom})`) // 位置調整
-            .call(xGrid);
+            .attr('transform', `translate(0,${height - margin.bottom})`)
+            .call(xGrid)
+            .call(g => {
+                g.selectAll('line')
+                    .attr('stroke', '#aaaaaa')
+                    .attr('stroke-width', '0.5');
+            });
 
         // Add horizontal grid lines
         const yGrid = d3.axisRight(yScale)
@@ -212,8 +217,13 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
 
         gridContainer.append('g')
             .attr('class', 'grid horizontal-grid')
-            .attr('transform', `translate(${width - margin.right},0)`) // 位置調整
-            .call(yGrid);
+            .attr('transform', `translate(${width - margin.right},0)`)
+            .call(yGrid)
+            .call(g => {
+                g.selectAll('line')
+                    .attr('stroke', '#aaaaaa')
+                    .attr('stroke-width', '0.5');
+            });
 
         // --- Add vertical minor grid lines ---
         const xMajorTicks = xScale.ticks(12);
@@ -229,7 +239,12 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
         gridContainer.append('g')
             .attr('class', 'grid minor-vertical-grid')
             .attr('transform', `translate(0,${height - margin.bottom})`)
-            .call(xMinorAxis);
+            .call(xMinorAxis)
+            .call(g => {
+                g.selectAll('line')
+                    .attr('stroke', '#cccccc')
+                    .attr('stroke-width', '0.3');
+            });
 
         // --- Add horizontal minor grid lines ---
         const yMajorTicks = yScale.ticks(10);
@@ -245,23 +260,12 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
         gridContainer.append('g')
             .attr('class', 'grid minor-horizontal-grid')
             .attr('transform', `translate(${width - margin.right},0)`)
-            .call(yMinorAxis);
-
-        // Style for grid lines
-        const style = document.createElement('style');
-        style.textContent = `
-                .vertical-grid line,
-                .horizontal-grid line {
-                    stroke: #aaaaaa;
-                    stroke-width: 0.5;
-                }
-                .minor-vertical-grid line,
-                .minor-horizontal-grid line {
-                    stroke: #cccccc;
-                    stroke-width: 0.3;
-                }
-            `;
-        document.head.appendChild(style);
+            .call(yMinorAxis)
+            .call(g => {
+                g.selectAll('line')
+                    .attr('stroke', '#cccccc')
+                    .attr('stroke-width', '0.3');
+            });
 
         // plot RH lines
         // Create line generator

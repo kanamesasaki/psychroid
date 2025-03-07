@@ -49,9 +49,9 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
     const getRangeForInputType = (inputType: string) => {
         switch (inputType) {
             case "humidity_ratio":
-                return { min: 0.0, max: 1.0 };
+                return { min: 0.0, max: 0.030 };
             case "relative_humidity":
-                return { min: 0.0, max: 1.0 };
+                return { min: 0.0, max: 100.0 };
             case "t_wet_bulb":
                 return { min: -100.0, max: 200.0 };
             case "t_dew_point":
@@ -83,6 +83,17 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 placeholder="101325.0"
                             />
                         </div>
+                        <div>
+                            <Label>Dry-bulb Temperature [°C]</Label>
+                            <Input
+                                type="number"
+                                value={inputValue1}
+                                onChange={(e) => setInputValue1(e.target.value)}
+                                placeholder="30.0"
+                                min="-100"
+                                max="200"
+                            />
+                        </div>
                         <div className="space-y-1">
                             <Select onValueChange={setFlowRateType} defaultValue="dry_air_mass_flow_rate">
                                 <SelectTrigger className="w-full">
@@ -101,18 +112,6 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 type="number"
                                 value={flowRateInput}
                                 onChange={(e) => setFlowRateInput(e.target.value)}
-                                placeholder="10000"
-                            />
-                        </div>
-                        <div>
-                            <Label>Dry-bulb Temperature [°C]</Label>
-                            <Input
-                                type="number"
-                                value={inputValue1}
-                                onChange={(e) => setInputValue1(e.target.value)}
-                                placeholder="30.0"
-                                min="-100"
-                                max="200"
                             />
                         </div>
                         <div className="space-y-1">
@@ -135,15 +134,29 @@ export default function Initialization({ onInitialize }: { onInitialize: (initia
                                 type="number"
                                 value={inputValue2}
                                 onChange={(e) => setInputValue2(e.target.value)}
-                                placeholder="0.01"
-                                min={min}
-                                max={max}
-                                step="0.01"
+                            // min={min}
+                            // max={max}
                             />
+                        </div>
+                        <div className="flex items-center h-full">
+                            {/* <RadioGroup defaultValue="si" className="flex flex-row space-x-4">
+                                <Label>Unit System: </Label>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="si" id="si" />
+                                    <Label htmlFor="SI">SI</Label>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                    <RadioGroupItem value="ip" id="ip" />
+                                    <Label htmlFor="IP">IP</Label>
+                                </div>
+                            </RadioGroup> */}
+                        </div>
+                        <div>
+                            <Button type="submit" className="w-full">Set Initial State</Button>
                         </div>
                     </div>
 
-                    <Button type="submit">Set Initial State</Button>
+
                 </form>
             </CardContent>
         </Card>

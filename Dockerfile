@@ -82,6 +82,7 @@ CMD ["sh", "-c", "cd web && npm run start"]
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add select
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add label
 # root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add textarea
+# root@400b5f27a40d:/workspaces/psychroid/web# npx shadcn@latest add radio-group
 
 # [Step1] 以下のコマンドでwasm-bindgen用の出力を生成します。ここでは Web 用に出力するため、--target web を利用します。
 # cd /workspaces/psychroid
@@ -103,3 +104,5 @@ CMD ["sh", "-c", "cd web && npm run start"]
 # Webpack 5 のネイティブ機能を使って、WASMファイルを asset/resource として出力する
 
 # [Step4] wasm-bindgen で生成されたファイルを import して利用する
+
+# npm install nodemailer
