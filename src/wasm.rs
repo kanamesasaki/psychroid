@@ -249,14 +249,14 @@ impl WasmMoistAir {
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn relativeHumidity(&self) -> f64 {
-        self.inner.relative_humidity().unwrap()
+        self.inner.relative_humidity().unwrap_or(f64::NAN)
     }
 
     /// Returns the wet-bulb temperature.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn tWetBulb(&self) -> f64 {
-        self.inner.t_wet_bulb()
+        self.inner.t_wet_bulb().unwrap_or(f64::NAN)
     }
 
     /// Returns the dew-point temperature. Returns NaN if calculation fails.
