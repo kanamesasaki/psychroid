@@ -1,6 +1,7 @@
 use crate::common::UnitSystem;
 use crate::common::{t_celsius_to_t_kelvin, t_rankine_from_t_fahrenheit};
 use crate::common::{TRIPLE_POINT_WATER_IP, TRIPLE_POINT_WATER_SI};
+use crate::error::PsychroidError;
 
 const C1_SI: f64 = -5.6745359E+03;
 const C2_SI: f64 = 6.3925247E+00;
@@ -49,20 +50,20 @@ impl Default for SaturatedWaterVapor {
 }
 
 impl SaturatedWaterVapor {
-    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Self {
+    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Result<Self, PsychroidError> {
         match unit {
             UnitSystem::IP => {
                 if !((-148.0..=392.0).contains(&t_dry_bulb)) {
-                    panic!("Dry bulb temperature is out of range");
+                    return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
                 }
             }
             UnitSystem::SI => {
                 if !((-100.0..=200.0).contains(&t_dry_bulb)) {
-                    panic!("Dry bulb temperature is out of range");
+                    return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
                 }
             }
         }
-        SaturatedWaterVapor { t_dry_bulb, unit }
+        Ok(SaturatedWaterVapor { t_dry_bulb, unit })
     }
 
     pub fn saturation_pressure(&self) -> f64 {
@@ -214,55 +215,55 @@ mod tests {
 
     #[test]
     fn test_saturation_pressure_si() {
-        let wsat = SaturatedWaterVapor::new(-60.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(-60.0, UnitSystem::SI).unwrap();
         assert_abs_diff_eq!(wsat.saturation_pressure(), 1.08, epsilon = 0.01);
 
-        let wsat = SaturatedWaterVapor::new(-20.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(-20.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 103.24, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(-5.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(-5.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 401.74, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(5.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(5.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 872.6, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(25.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(25.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 3169.7, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(50.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(50.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 12351.3, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(100.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(100.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 101418.0, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(150.0, UnitSystem::SI);
+        let wsat = SaturatedWaterVapor::new(150.0, UnitSystem::SI).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 476101.4, max_relative = 0.0003);
     }
 
     #[test]
     fn test_saturation_pressure_ip() {
-        let wsat = SaturatedWaterVapor::new(-76.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(-76.0, UnitSystem::IP).unwrap();
         assert_abs_diff_eq!(wsat.saturation_pressure(), 0.000157, epsilon = 0.0001);
 
-        let wsat = SaturatedWaterVapor::new(-4.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(-4.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 0.014974, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(23.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(23.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 0.058268, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(41.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(41.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 0.12656, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(77.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(77.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 0.45973, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(122.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(122.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 1.79140, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(212.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(212.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 14.7094, max_relative = 0.0003);
 
-        let wsat = SaturatedWaterVapor::new(300.0, UnitSystem::IP);
+        let wsat = SaturatedWaterVapor::new(300.0, UnitSystem::IP).unwrap();
         assert_relative_eq!(wsat.saturation_pressure(), 67.0206, max_relative = 0.0003);
     }
 }

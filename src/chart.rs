@@ -33,7 +33,8 @@ pub fn line_relative_humidity(phi: f64, pressure: f64, unit: UnitSystem) -> Vec<
         .iter()
         .map(|&t_dry_bulb| {
             let moist_air =
-                MoistAir::from_t_dry_bulb_relative_humidity(t_dry_bulb, phi, pressure, unit);
+                MoistAir::from_t_dry_bulb_relative_humidity(t_dry_bulb, phi, pressure, unit)
+                    .unwrap();
             (t_dry_bulb, moist_air.humidity_ratio())
         })
         .collect();

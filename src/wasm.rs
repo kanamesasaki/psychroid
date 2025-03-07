@@ -41,7 +41,8 @@ pub fn relativeHumidityLine(
         .iter()
         .map(|&t_dry_bulb| {
             let moist_air =
-                MoistAir::from_t_dry_bulb_relative_humidity(t_dry_bulb, phi, pressure, unit);
+                MoistAir::from_t_dry_bulb_relative_humidity(t_dry_bulb, phi, pressure, unit)
+                    .unwrap();
             WasmPoint {
                 x: t_dry_bulb,
                 y: moist_air.humidity_ratio(),
@@ -135,7 +136,8 @@ impl WasmMoistAir {
             relative_humidity,
             pressure,
             unit,
-        );
+        )
+        .unwrap();
         WasmMoistAir { inner }
     }
 
@@ -160,7 +162,8 @@ impl WasmMoistAir {
             UnitSystem::IP
         };
         let inner =
-            MoistAir::from_t_dry_bulb_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit);
+            MoistAir::from_t_dry_bulb_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit)
+                .unwrap();
         WasmMoistAir { inner }
     }
 
@@ -197,7 +200,8 @@ impl WasmMoistAir {
         } else {
             UnitSystem::IP
         };
-        let inner = MoistAir::from_t_dry_bulb_t_wet_bulb(t_dry_bulb, t_wet_bulb, pressure, unit);
+        let inner =
+            MoistAir::from_t_dry_bulb_t_wet_bulb(t_dry_bulb, t_wet_bulb, pressure, unit).unwrap();
         WasmMoistAir { inner }
     }
 
@@ -215,7 +219,8 @@ impl WasmMoistAir {
         } else {
             UnitSystem::IP
         };
-        let inner = MoistAir::from_t_dry_bulb_t_dew_point(t_dry_bulb, t_dew_point, pressure, unit);
+        let inner =
+            MoistAir::from_t_dry_bulb_t_dew_point(t_dry_bulb, t_dew_point, pressure, unit).unwrap();
         WasmMoistAir { inner }
     }
 
@@ -244,7 +249,7 @@ impl WasmMoistAir {
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn relativeHumidity(&self) -> f64 {
-        self.inner.relative_humidity()
+        self.inner.relative_humidity().unwrap()
     }
 
     /// Returns the wet-bulb temperature.
@@ -254,11 +259,11 @@ impl WasmMoistAir {
         self.inner.t_wet_bulb()
     }
 
-    /// Returns the dew-point temperature.
+    /// Returns the dew-point temperature. Returns NaN if calculation fails.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn tDewPoint(&self) -> f64 {
-        self.inner.t_dew_point()
+        self.inner.t_dew_point().unwrap_or(f64::NAN)
     }
 
     /// Returns the moist air density.
@@ -293,7 +298,7 @@ impl WasmMoistAir {
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn coolingDeltaTemperature(&mut self, mda: f64, dt: f64) -> f64 {
-        self.inner.cooling_dt(mda, dt)
+        self.inner.cooling_dt(mda, dt).unwrap_or(f64::NAN)
     }
 
     /// Humidification process
