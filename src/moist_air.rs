@@ -236,7 +236,7 @@ impl MoistAir {
         )
     }
 
-    pub fn t_dew_point(&self) -> Result<f64, roots::SearchError> {
+    pub fn t_dew_point(&self) -> Result<f64, PsychroidError> {
         t_dew_point_from_humidity_ratio(self.humidity_ratio, self.pressure, self.unit)
     }
 
@@ -476,12 +476,12 @@ impl MoistAir {
         let t_saturated = find_root_newton_raphson(
             self.t_dry_bulb,
             |t| {
-                let saturated_water = SaturatedWaterVapor::new(t, self.unit).unwrap();
+                let saturated_water = SaturatedWaterVapor::new_relaxed(t, self.unit);
                 let pws: f64 = saturated_water.saturation_pressure();
                 self.humidity_ratio * (self.pressure - pws) - MASS_RATIO_WATER_DRY_AIR * pws
             },
             |t| {
-                let saturated_water = SaturatedWaterVapor::new(t, self.unit).unwrap();
+                let saturated_water = SaturatedWaterVapor::new_relaxed(t, self.unit);
                 -(self.humidity_ratio + MASS_RATIO_WATER_DRY_AIR)
                     * saturated_water.deriv_saturation_pressure()
             },
@@ -593,7 +593,7 @@ fn t_wet_bulb_from_humidity_ratio_si(
     pressure: f64,
 ) -> Result<f64, PsychroidError> {
     let f = |t_wet_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::SI).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_wet_bulb, UnitSystem::SI);
         let saturation_pressure = saturation_water_vapor.saturation_pressure();
         let saturation_humidity_ratio =
             MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
@@ -611,7 +611,7 @@ fn t_wet_bulb_from_humidity_ratio_si(
         }
     };
     let d = |t_wet_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::SI).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_wet_bulb, UnitSystem::SI);
         let saturation_pressure = saturation_water_vapor.saturation_pressure();
         let saturation_humidity_ratio =
             MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
@@ -648,7 +648,7 @@ fn t_wet_bulb_from_humidity_ratio_ip(
     pressure: f64,
 ) -> Result<f64, PsychroidError> {
     let f = |t_wet_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::IP).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_wet_bulb, UnitSystem::IP);
         let saturation_pressure = saturation_water_vapor.saturation_pressure();
         let saturation_humidity_ratio =
             MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
@@ -667,7 +667,7 @@ fn t_wet_bulb_from_humidity_ratio_ip(
     };
 
     let d = |t_wet_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_wet_bulb, UnitSystem::IP).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_wet_bulb, UnitSystem::IP);
         let saturation_pressure = saturation_water_vapor.saturation_pressure();
         let saturation_humidity_ratio =
             MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure);
@@ -729,15 +729,15 @@ fn t_dew_point_from_humidity_ratio(
     humidity_ratio: f64,
     pressure: f64,
     unit: UnitSystem,
-) -> Result<f64, roots::SearchError> {
+) -> Result<f64, PsychroidError> {
     let saturation_pressure =
         pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
     let f = |t: f64| {
-        let saturated_water_vapor = SaturatedWaterVapor::new(t, unit).unwrap();
+        let saturated_water_vapor = SaturatedWaterVapor::new_relaxed(t, unit);
         saturated_water_vapor.saturation_pressure() - saturation_pressure
     };
     let d = |t: f64| {
-        let saturated_water_vapor = SaturatedWaterVapor::new(t, unit).unwrap();
+        let saturated_water_vapor = SaturatedWaterVapor::new_relaxed(t, unit);
         saturated_water_vapor.deriv_saturation_pressure()
     };
     let mut convergency = SimpleConvergency {
@@ -837,7 +837,7 @@ fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
     unit: UnitSystem,
 ) -> Result<f64, PsychroidError> {
     let f = |t_dry_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_dry_bulb, unit);
         let partial_water_vapor_pressure =
             relative_humidity * saturation_water_vapor.saturation_pressure();
         (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy) * partial_water_vapor_pressure
@@ -846,7 +846,7 @@ fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
             - specific_enthalpy * pressure
     };
     let d = |t_dry_bulb: f64| {
-        let saturation_water_vapor = SaturatedWaterVapor::new(t_dry_bulb, unit).unwrap();
+        let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_dry_bulb, unit);
         let partial_water_vapor_pressure =
             relative_humidity * saturation_water_vapor.saturation_pressure();
         let deriv_partial_water_vapor_pressure =
@@ -862,6 +862,7 @@ fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
     };
     let t_init = specific_enthalpy / 1.006; // humidity_ratio = 0.0
     let root = find_root_newton_raphson(t_init, &f, &d, &mut convergency)?;
+
     Ok(root)
 }
 

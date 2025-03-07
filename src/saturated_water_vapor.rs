@@ -38,6 +38,7 @@ const C13_IP: f64 = 6.5459673E+00;
 pub struct SaturatedWaterVapor {
     t_dry_bulb: f64,
     unit: UnitSystem,
+    strict: bool,
 }
 
 impl Default for SaturatedWaterVapor {
@@ -45,25 +46,48 @@ impl Default for SaturatedWaterVapor {
         SaturatedWaterVapor {
             t_dry_bulb: 20.0,
             unit: UnitSystem::SI,
+            strict: true,
         }
     }
 }
 
-impl SaturatedWaterVapor {
-    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Result<Self, PsychroidError> {
-        match unit {
-            UnitSystem::IP => {
-                if !((-148.0..=392.0).contains(&t_dry_bulb)) {
-                    return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
-                }
-            }
-            UnitSystem::SI => {
-                if !((-100.0..=200.0).contains(&t_dry_bulb)) {
-                    return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
-                }
+/// Check if the dry-bulb temperature is within the valid range
+/// - IP: -148°F to 392°F
+/// - SI: -100°C to 200°C
+///
+/// The range is based on the valid range of the water vapor saturation pressure approximation formula.
+pub fn check_range_t_dry_bulb(t_dry_bulb: f64, unit: UnitSystem) -> Result<(), PsychroidError> {
+    match unit {
+        UnitSystem::IP => {
+            if !((-148.0..=392.0).contains(&t_dry_bulb)) {
+                return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
             }
         }
-        Ok(SaturatedWaterVapor { t_dry_bulb, unit })
+        UnitSystem::SI => {
+            if !((-100.0..=200.0).contains(&t_dry_bulb)) {
+                return Err(PsychroidError::InvalidTDryBulb { t_dry_bulb, unit });
+            }
+        }
+    }
+    Ok(())
+}
+
+impl SaturatedWaterVapor {
+    pub fn new(t_dry_bulb: f64, unit: UnitSystem) -> Result<Self, PsychroidError> {
+        check_range_t_dry_bulb(t_dry_bulb, unit)?;
+        Ok(SaturatedWaterVapor {
+            t_dry_bulb,
+            unit,
+            strict: true,
+        })
+    }
+
+    pub fn new_relaxed(t_dry_bulb: f64, unit: UnitSystem) -> Self {
+        SaturatedWaterVapor {
+            t_dry_bulb,
+            unit,
+            strict: false,
+        }
     }
 
     pub fn saturation_pressure(&self) -> f64 {

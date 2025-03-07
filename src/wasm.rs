@@ -1,6 +1,8 @@
 use crate::common::UnitSystem;
+use crate::error::PsychroidError;
 use crate::moist_air::MoistAir;
 use wasm_bindgen::prelude::*;
+use wasm_bindgen::JsError;
 
 // wasm-pack build --target web --out-dir web/lib
 
@@ -8,6 +10,11 @@ use wasm_bindgen::prelude::*;
 pub struct WasmPoint {
     pub x: f64,
     pub y: f64,
+}
+
+// Convert PsychroidError to JsError
+fn to_js_error(err: PsychroidError) -> JsError {
+    JsError::new(&format!("{}", err))
 }
 
 /// Generates data points for constant relative humidity line on psychrometric chart
@@ -125,20 +132,21 @@ impl WasmMoistAir {
         relative_humidity: f64,
         pressure: f64,
         is_si: bool,
-    ) -> WasmMoistAir {
+    ) -> Result<WasmMoistAir, JsError> {
         let unit = if is_si {
             UnitSystem::SI
         } else {
             UnitSystem::IP
         };
-        let inner = MoistAir::from_t_dry_bulb_relative_humidity(
+        match MoistAir::from_t_dry_bulb_relative_humidity(
             t_dry_bulb,
             relative_humidity,
             pressure,
             unit,
-        )
-        .unwrap();
-        WasmMoistAir { inner }
+        ) {
+            Ok(inner) => Ok(WasmMoistAir { inner }),
+            Err(err) => Err(to_js_error(err)),
+        }
     }
 
     /// Creates a new WasmMoistAir instance from dry-bulb temperature and humidity ratio.
@@ -155,16 +163,16 @@ impl WasmMoistAir {
         humidity_ratio: f64,
         pressure: f64,
         is_si: bool,
-    ) -> WasmMoistAir {
+    ) -> Result<WasmMoistAir, JsError> {
         let unit = if is_si {
             UnitSystem::SI
         } else {
             UnitSystem::IP
         };
-        let inner =
-            MoistAir::from_t_dry_bulb_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit)
-                .unwrap();
-        WasmMoistAir { inner }
+        match MoistAir::from_t_dry_bulb_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit) {
+            Ok(inner) => Ok(WasmMoistAir { inner }),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Creates a new WasmMoistAir instance from dry-bulb temperature and specific enthalpy.
@@ -194,15 +202,16 @@ impl WasmMoistAir {
         t_wet_bulb: f64,
         pressure: f64,
         is_si: bool,
-    ) -> WasmMoistAir {
+    ) -> Result<WasmMoistAir, JsError> {
         let unit = if is_si {
             UnitSystem::SI
         } else {
             UnitSystem::IP
         };
-        let inner =
-            MoistAir::from_t_dry_bulb_t_wet_bulb(t_dry_bulb, t_wet_bulb, pressure, unit).unwrap();
-        WasmMoistAir { inner }
+        match MoistAir::from_t_dry_bulb_t_wet_bulb(t_dry_bulb, t_wet_bulb, pressure, unit) {
+            Ok(inner) => Ok(WasmMoistAir { inner }),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Returns the current dew-point temperature.
@@ -213,15 +222,16 @@ impl WasmMoistAir {
         t_dew_point: f64,
         pressure: f64,
         is_si: bool,
-    ) -> WasmMoistAir {
+    ) -> Result<WasmMoistAir, JsError> {
         let unit = if is_si {
             UnitSystem::SI
         } else {
             UnitSystem::IP
         };
-        let inner =
-            MoistAir::from_t_dry_bulb_t_dew_point(t_dry_bulb, t_dew_point, pressure, unit).unwrap();
-        WasmMoistAir { inner }
+        match MoistAir::from_t_dry_bulb_t_dew_point(t_dry_bulb, t_dew_point, pressure, unit) {
+            Ok(inner) => Ok(WasmMoistAir { inner }),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Returns the current dry-bulb temperature.
@@ -248,22 +258,31 @@ impl WasmMoistAir {
     /// Returns the relative humidity.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn relativeHumidity(&self) -> f64 {
-        self.inner.relative_humidity().unwrap_or(f64::NAN)
+    pub fn relativeHumidity(&self) -> Result<f64, JsError> {
+        match self.inner.relative_humidity() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Returns the wet-bulb temperature.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn tWetBulb(&self) -> f64 {
-        self.inner.t_wet_bulb().unwrap_or(f64::NAN)
+    pub fn tWetBulb(&self) -> Result<f64, JsError> {
+        match self.inner.t_wet_bulb() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Returns the dew-point temperature. Returns NaN if calculation fails.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn tDewPoint(&self) -> f64 {
-        self.inner.t_dew_point().unwrap_or(f64::NAN)
+    pub fn tDewPoint(&self) -> Result<f64, JsError> {
+        match self.inner.t_dew_point() {
+            Ok(v) => Ok(v),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Returns the moist air density.
@@ -297,8 +316,11 @@ impl WasmMoistAir {
     /// Cooling process
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn coolingDeltaTemperature(&mut self, mda: f64, dt: f64) -> f64 {
-        self.inner.cooling_dt(mda, dt).unwrap_or(f64::NAN)
+    pub fn coolingDeltaTemperature(&mut self, mda: f64, dt: f64) -> Result<f64, JsError> {
+        match self.inner.cooling_dt(mda, dt) {
+            Ok(v) => Ok(v),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Humidification process
