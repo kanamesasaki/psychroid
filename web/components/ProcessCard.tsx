@@ -193,10 +193,12 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
 
     return (
         <Card className="w-full">
-            <CardHeader>
-                <CardTitle>Process Settings: {localProcessData.id} &#8211; {localProcessData.id + 1}</CardTitle>
+            <CardHeader className="pb-2 pt-4">
+                <CardTitle className="text-lg">
+                    Process Settings: {localProcessData.id} &#8211; {localProcessData.id + 1}
+                </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="pb-4">
                 <div className="flex flex-col gap-4">
                     {renderInputs()}
                     {/* <Button type="button" onClick={() => console.log("Process Applied")}>

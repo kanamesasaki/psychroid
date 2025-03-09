@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import Initialization from "../components/Initialization";
+import React, { useState, useEffect, useRef } from "react";
+import Initialization, { InitializationRef } from "../components/Initialization";
 import Chart from "../components/Chart";
 import Header from "../components/Header";
 import StateTable from "../components/StateTable";
@@ -65,6 +65,8 @@ const initialStateDefault: InitialState = {
 };
 
 const Page = () => {
+  // Ref for Initialization component
+  const initializationRef = useRef<InitializationRef>(null);
   // WASM init state
   const [wasmInitialized, setWasmInitialized] = React.useState(false);
   // Chart lines
@@ -143,38 +145,42 @@ const Page = () => {
     if (wasmInitialized) {
       setRhLines(getRhLines());
       setEnthalpyLines(getEnthalpyLines());
-      console.log("plot RH lines and enthalpy lines");
     }
   }, [wasmInitialized, initialState]);
 
   const handleInitialize = (initialStateInput: InitialState) => {
     setInitialState(initialStateInput);
-    console.log("Initialized:", initialState);
   };
 
   const handleApplyProcesses = (processes: Process[]) => {
     setProcesses(processes);
-    console.log("Processes:", processes);
   };
 
   const calculateNextState = (prev: State, proc: Process) => {
     let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
-    console.log("Volumetric flow rate:", prev.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
+    // console.log("Volumetric flow rate:", prev.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
 
-    if (proc.processType === "Heating" && proc.inputType === "Power") {
-      moistAir.heatingPower(prev.dryAirMassFlowRate, proc.value);
-    } else if (proc.processType === "Heating" && proc.inputType === "ΔT") {
-      let q = moistAir.heatingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
-      console.log("Heating with ΔT:", proc.value, moistAir.tDryBulb(), q);
-    } else if (proc.processType === "Cooling" && proc.inputType === "Power") {
-      moistAir.coolingPower(prev.dryAirMassFlowRate, proc.value);
-    } else if (proc.processType === "Cooling" && proc.inputType === "ΔT") {
-      moistAir.coolingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
-    } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Adiabatic") {
-      moistAir.humidifyAdiabatic(prev.dryAirMassFlowRate, proc.value);
-    } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Isothermal") {
-      moistAir.humidifyIsothermal(prev.dryAirMassFlowRate, proc.value);
+    try {
+      if (proc.processType === "Heating" && proc.inputType === "Power") {
+        moistAir.heatingPower(prev.dryAirMassFlowRate, proc.value);
+      } else if (proc.processType === "Heating" && proc.inputType === "ΔT") {
+        let q = moistAir.heatingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
+        console.log("Heating with ΔT:", proc.value, moistAir.tDryBulb(), q);
+      } else if (proc.processType === "Cooling" && proc.inputType === "Power") {
+        moistAir.coolingPower(prev.dryAirMassFlowRate, proc.value);
+      } else if (proc.processType === "Cooling" && proc.inputType === "ΔT") {
+        moistAir.coolingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
+      } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Adiabatic") {
+        moistAir.humidifyAdiabatic(prev.dryAirMassFlowRate, proc.value);
+      } else if (proc.processType === "Humidify" && proc.inputType === "ΔW Isothermal") {
+        moistAir.humidifyIsothermal(prev.dryAirMassFlowRate, proc.value);
+      }
+    } catch (err) {
+      console.error(`Error in process ${proc.id} (${proc.processType}):`, err);
+      // return previous state (only id is updated)
+      return { ...prev, id: prev.id + 1 };
     }
+
     let next = {
       id: prev.id + 1,
       tDryBulb: moistAir.tDryBulb(),
@@ -186,7 +192,7 @@ const Page = () => {
       density: moistAir.density(),
       dryAirMassFlowRate: prev.dryAirMassFlowRate
     } as State;
-    console.log("Volumetric flow rate:", next.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
+    // console.log("Volumetric flow rate:", next.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
     return next;
   };
 
@@ -226,6 +232,7 @@ const Page = () => {
       } catch (err) {
         console.error("Failed to create moist air object:", err);
         setInitialState(initialStateDefault);
+        initializationRef.current?.resetForm();
         return
       }
 
@@ -250,7 +257,6 @@ const Page = () => {
       })
 
       setStates(stateArray);
-      console.log("States:", stateArray);
     }
   }, [initialState, wasmInitialized, processes]);
 
@@ -264,7 +270,10 @@ const Page = () => {
           <StateTable states={states} />
         </div>
         <div className="col-span-1 md:col-span-5">
-          <Initialization onInitialize={handleInitialize} />
+          <Initialization
+            ref={initializationRef}
+            onInitialize={handleInitialize}
+          />
           <ProcessArray onApplyProcesses={handleApplyProcesses} />
         </div>
       </div>

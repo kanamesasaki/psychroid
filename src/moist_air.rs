@@ -228,12 +228,16 @@ impl MoistAir {
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn relative_humidity(&self) -> Result<f64, PsychroidError> {
-        relative_humidity_from_humidity_ratio(
+        let value = relative_humidity_from_humidity_ratio(
             self.t_dry_bulb,
             self.humidity_ratio,
             self.pressure,
             self.unit,
-        )
+        )?;
+        if !(0.0..=1.0).contains(&value) {
+            return Err(PsychroidError::InvalidRelativeHumidity(value));
+        }
+        Ok(value)
     }
 
     pub fn t_dew_point(&self) -> Result<f64, PsychroidError> {
@@ -449,9 +453,10 @@ impl MoistAir {
     ///
     /// # Note
     /// This method modifies both temperature and humidity ratio of the instance
-    pub fn humidify_adiabatic(&mut self, mda: f64, water: f64) {
+    pub fn humidify_adiabatic(&mut self, mda: f64, water: f64) -> Result<(), PsychroidError> {
         let w0 = self.humidity_ratio;
         let w1 = w0 + water / mda;
+
         self.t_dry_bulb = match self.unit {
             UnitSystem::SI => {
                 ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2051.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
@@ -461,6 +466,8 @@ impl MoistAir {
             }
         };
         self.humidity_ratio = w1;
+        self.relative_humidity()?;
+        Ok(())
     }
 
     pub fn humidify_isothermal(&mut self, mda: f64, water: f64) {
@@ -730,6 +737,10 @@ fn t_dew_point_from_humidity_ratio(
     pressure: f64,
     unit: UnitSystem,
 ) -> Result<f64, PsychroidError> {
+    if humidity_ratio <= f64::EPSILON {
+        return Ok(f64::NAN);
+    }
+
     let saturation_pressure =
         pressure * humidity_ratio / (MASS_RATIO_WATER_DRY_AIR + humidity_ratio);
     let f = |t: f64| {

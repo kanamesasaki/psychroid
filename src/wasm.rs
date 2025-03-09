@@ -275,7 +275,7 @@ impl WasmMoistAir {
         }
     }
 
-    /// Returns the dew-point temperature. Returns NaN if calculation fails.
+    /// Returns the dew-point temperature.
     #[wasm_bindgen]
     #[allow(non_snake_case)]
     pub fn tDewPoint(&self) -> Result<f64, JsError> {
@@ -309,8 +309,11 @@ impl WasmMoistAir {
     /// Cooling process
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn coolingPower(&mut self, mda: f64, power: f64) {
-        self.inner.cooling_q(mda, power);
+    pub fn coolingPower(&mut self, mda: f64, power: f64) -> Result<(), JsError> {
+        match self.inner.cooling_q(mda, power) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Cooling process
@@ -326,8 +329,11 @@ impl WasmMoistAir {
     /// Humidification process
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn humidifyAdiabatic(&mut self, mda: f64, w: f64) {
-        self.inner.humidify_adiabatic(mda, w);
+    pub fn humidifyAdiabatic(&mut self, mda: f64, w: f64) -> Result<(), JsError> {
+        match self.inner.humidify_adiabatic(mda, w) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 
     /// Humidification process
