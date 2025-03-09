@@ -1,9 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "./ui/card";
 import { Input } from "./ui/input";
-import { Button } from "./ui/button";
 import {
     Select,
     SelectTrigger,
@@ -13,8 +12,6 @@ import {
 } from "@/components/ui/select";
 import { Label } from "./ui/label";
 import { Process } from "@/app/page";
-import { on } from "events";
-
 
 interface ProcessCardProps {
     processData: Process;
@@ -22,7 +19,7 @@ interface ProcessCardProps {
 }
 
 const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
-    let localProcessData: Process = processData;
+    const localProcessData: Process = processData;
 
     const handleProcessTypeChange = (value: string) => {
         let inputType: string = "";

@@ -11,6 +11,11 @@ const compat = new FlatCompat({
 
 const eslintConfig = [
   ...compat.extends("next/core-web-vitals", "next/typescript"),
+
+  {
+    // ignore WASM files
+    ignores: ["lib/psychroid.js", "lib/psychroid_bg.wasm.d.ts", "lib/psychroid.d.ts"],
+  },
 ];
 
 export default eslintConfig;

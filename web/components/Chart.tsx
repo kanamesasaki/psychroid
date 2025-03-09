@@ -56,13 +56,14 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                         },
                     ],
                 };
-                // @ts-ignore
+                // @ts-expect-error - showSaveFilePicker API is not yet in all TypeScript definitions
                 const fileHandle = await window.showSaveFilePicker(options);
                 const writable = await fileHandle.createWritable();
                 await writable.write(blob);
                 await writable.close();
-            } catch (error: any) {
-                if (error.name === "AbortError") {
+            } catch (error: unknown) {
+                const err = error as { name?: string };
+                if (err.name === "AbortError") {
                     console.log("File saving was cancelled");
                 } else {
                     console.error("File saving was cancelled or failed", error);
@@ -124,16 +125,16 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             // Interpolation: remove exceedingIndex and later, then add the interpolated point
             const p0 = rh100Line.data[exceedingIndex - 1];
             const p1 = rh100Line.data[exceedingIndex];
-            let t: number = (yMax - p0.y) / (p1.y - p0.y);
-            let interpolatedX: number = p0.x + t * (p1.x - p0.x);
+            const t: number = (yMax - p0.y) / (p1.y - p0.y);
+            const interpolatedX: number = p0.x + t * (p1.x - p0.x);
             rh100LineClipped = [...rh100Line.data.slice(0, exceedingIndex), { x: interpolatedX, y: yMax }];
         } else {
             // Extrapolation: add the extrapolated point to the end of the array
             const last = rh100Line.data.length;
             const p0 = rh100Line.data[last - 2];
             const p1 = rh100Line.data[last - 1];
-            let t: number = (yMax - p0.y) / (p1.y - p0.y);
-            let interpolatedX: number = p0.x + t * (p1.x - p0.x);
+            const t: number = (yMax - p0.y) / (p1.y - p0.y);
+            const interpolatedX: number = p0.x + t * (p1.x - p0.x);
             rh100LineClipped = [...rh100Line.data, { x: interpolatedX, y: yMax }];
         }
 

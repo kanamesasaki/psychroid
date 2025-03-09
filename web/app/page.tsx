@@ -146,6 +146,7 @@ const Page = () => {
       setRhLines(getRhLines());
       setEnthalpyLines(getEnthalpyLines());
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [wasmInitialized, initialState]);
 
   const handleInitialize = (initialStateInput: InitialState) => {
@@ -157,14 +158,14 @@ const Page = () => {
   };
 
   const calculateNextState = (prev: State, proc: Process) => {
-    let moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
+    const moistAir: WasmMoistAir = WasmMoistAir.fromHumidityRatio(prev.tDryBulb, prev.humidityRatio, initialState.pressure, true);
     // console.log("Volumetric flow rate:", prev.dryAirMassFlowRate * (1 + moistAir.humidityRatio()) / moistAir.density() * 3600);
 
     try {
       if (proc.processType === "Heating" && proc.inputType === "Power") {
         moistAir.heatingPower(prev.dryAirMassFlowRate, proc.value);
       } else if (proc.processType === "Heating" && proc.inputType === "ΔT") {
-        let q = moistAir.heatingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
+        const q = moistAir.heatingDeltaTemperature(prev.dryAirMassFlowRate, proc.value);
         console.log("Heating with ΔT:", proc.value, moistAir.tDryBulb(), q);
       } else if (proc.processType === "Cooling" && proc.inputType === "Power") {
         moistAir.coolingPower(prev.dryAirMassFlowRate, proc.value);
@@ -181,7 +182,7 @@ const Page = () => {
       return { ...prev, id: prev.id + 1 };
     }
 
-    let next = {
+    const next = {
       id: prev.id + 1,
       tDryBulb: moistAir.tDryBulb(),
       humidityRatio: moistAir.humidityRatio(),
@@ -258,6 +259,7 @@ const Page = () => {
 
       setStates(stateArray);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [initialState, wasmInitialized, processes]);
 
   return (
