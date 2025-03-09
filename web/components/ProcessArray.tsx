@@ -36,9 +36,7 @@ const ProcessArray = ({ onApplyProcesses }: { onApplyProcesses: (processes: Proc
                     onChange={updateProcess}
                 />
             ))}
-            <div className="grid grid-cols-4 gap-4">
-                <div>{/* First Left is blank */}</div>
-                <div>{/* Second Left is blank */}</div>
+            <div className="grid grid-cols-2 gap-4">
                 <Button onClick={addProcessCard} className="text-sm px-3 py-1">
                     <SquarePlus className="mr-1" />
                     Add Process

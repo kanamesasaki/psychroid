@@ -50,12 +50,12 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
         switch (localProcessData.processType) {
             case "Heating":
                 return (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
                             <Select value={localProcessData.processType} onValueChange={handleProcessTypeChange}>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full py-1 h-9">
                                     <SelectValue placeholder="Select process type" />
                                 </SelectTrigger>
                                 <SelectContent>
@@ -68,7 +68,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                         <div>
                             <Label>Input Type</Label>
                             <Select value={localProcessData.inputType} onValueChange={handleInputTypeChange}>
-                                <SelectTrigger>
+                                <SelectTrigger className="w-full py-1 h-9">
                                     <SelectValue placeholder="Select option" />
                                 </SelectTrigger>
                                 <SelectContent>

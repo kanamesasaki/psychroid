@@ -10,7 +10,7 @@ const Header = () => {
             <div className="flex items-center">
                 <Image src={favicon} alt="Logo" width={32} height={32} className="mr-3" />
                 <Link href="/" className="text-2xl font-bold">
-                    Psychrometric Chart Tool
+                    Psychrometric Chart Calculator
                 </Link>
             </div>
             <nav className="flex items-center space-x-5">

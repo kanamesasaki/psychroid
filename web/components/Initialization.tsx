@@ -125,7 +125,7 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                             </div>
                             <div className="space-y-1">
                                 <Select onValueChange={setFlowRateType} defaultValue="dry_air_mass_flow_rate">
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className="w-full py-1 h-9">
                                         <SelectValue placeholder="dry_air_mass_flow_rate" />
                                     </SelectTrigger>
                                     <SelectContent>
@@ -145,7 +145,7 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                             </div>
                             <div className="space-y-1">
                                 <Select onValueChange={setInputType2} defaultValue="humidity_ratio">
-                                    <SelectTrigger className="w-full">
+                                    <SelectTrigger className="w-full py-1 h-9">
                                         <SelectValue placeholder="humidity_ratio" />
                                     </SelectTrigger>
                                     <SelectContent>

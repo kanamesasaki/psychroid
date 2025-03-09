@@ -88,3 +88,9 @@ html {
     @apply bg-background text-foreground;
   }
 }
+
+@layer components {
+  .select-trigger-compact {
+    @apply py-1 h-9;
+  }
+}
