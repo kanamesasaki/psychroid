@@ -10,13 +10,13 @@ const Header = () => {
             <div className="flex items-center">
                 <Image src={favicon} alt="Logo" width={32} height={32} className="mr-3" />
                 <Link href="/" className="text-2xl font-bold">
-                    Psychroid: Psychrometric Chart Tool
+                    Psychrometric Chart Tool
                 </Link>
             </div>
             <nav className="flex items-center space-x-5">
-                <Link href="/contact" className="text-sm font-medium hover:text-primary">
+                {/* <Link href="/contact" className="text-sm font-medium hover:text-primary">
                     Contact
-                </Link>
+                </Link> */}
                 {/* <a
                     href="https://github.com/kanamesasaki/psychroid"
                     target="_blank"

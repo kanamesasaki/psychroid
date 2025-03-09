@@ -2,6 +2,10 @@ import type { Configuration } from 'webpack'
 import type { NextConfig } from 'next'
 
 const nextConfig: NextConfig = {
+  output: 'export', // 静的ファイルを出力
+  images: {
+    unoptimized: true, // Cloudflare Pages 互換性のため
+  },
   webpack: (config: Configuration) => {
     config.experiments = {
       ...config.experiments,

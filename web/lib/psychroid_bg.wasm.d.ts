@@ -1,0 +1,34 @@
+/* tslint:disable */
+/* eslint-disable */
+export const memory: WebAssembly.Memory;
+export const __wbg_wasmpoint_free: (a: number, b: number) => void;
+export const __wbg_get_wasmpoint_x: (a: number) => number;
+export const __wbg_set_wasmpoint_x: (a: number, b: number) => void;
+export const __wbg_get_wasmpoint_y: (a: number) => number;
+export const __wbg_set_wasmpoint_y: (a: number, b: number) => void;
+export const relativeHumidityLine: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const specificEnthalpyLine: (a: number, b: number, c: number, d: number, e: number) => [number, number];
+export const __wbg_wasmmoistair_free: (a: number, b: number) => void;
+export const wasmmoistair_fromRelativeHumidity: (a: number, b: number, c: number, d: number) => [number, number, number];
+export const wasmmoistair_fromHumidityRatio: (a: number, b: number, c: number, d: number) => [number, number, number];
+export const wasmmoistair_fromSpecificEnthalpy: (a: number, b: number, c: number, d: number) => number;
+export const wasmmoistair_fromTWetBulb: (a: number, b: number, c: number, d: number) => [number, number, number];
+export const wasmmoistair_fromTDewPoint: (a: number, b: number, c: number, d: number) => [number, number, number];
+export const wasmmoistair_tDryBulb: (a: number) => number;
+export const wasmmoistair_humidityRatio: (a: number) => number;
+export const wasmmoistair_specificEnthalpy: (a: number) => number;
+export const wasmmoistair_relativeHumidity: (a: number) => [number, number, number];
+export const wasmmoistair_tWetBulb: (a: number) => [number, number, number];
+export const wasmmoistair_tDewPoint: (a: number) => [number, number, number];
+export const wasmmoistair_density: (a: number) => number;
+export const wasmmoistair_heatingPower: (a: number, b: number, c: number) => void;
+export const wasmmoistair_heatingDeltaTemperature: (a: number, b: number, c: number) => number;
+export const wasmmoistair_coolingPower: (a: number, b: number, c: number) => [number, number];
+export const wasmmoistair_coolingDeltaTemperature: (a: number, b: number, c: number) => [number, number, number];
+export const wasmmoistair_humidifyAdiabatic: (a: number, b: number, c: number) => [number, number];
+export const wasmmoistair_humidifyIsothermal: (a: number, b: number, c: number) => void;
+export const __wbindgen_export_0: WebAssembly.Table;
+export const __externref_drop_slice: (a: number, b: number) => void;
+export const __wbindgen_free: (a: number, b: number, c: number) => void;
+export const __externref_table_dealloc: (a: number) => void;
+export const __wbindgen_start: () => void;
