@@ -106,3 +106,4 @@ CMD ["sh", "-c", "cd web && npm run start"]
 # [Step4] wasm-bindgen で生成されたファイルを import して利用する
 
 # npm install nodemailer
+# npm install react-cookie-consent
