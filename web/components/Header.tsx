@@ -14,9 +14,9 @@ const Header = () => {
                 </Link>
             </div>
             <nav className="flex items-center space-x-5">
-                {/* <Link href="/contact" className="text-sm font-medium hover:text-primary">
+                <Link href="/contact" className="text-sm font-medium hover:text-primary">
                     Contact
-                </Link> */}
+                </Link>
                 {/* <a
                     href="https://github.com/kanamesasaki/psychroid"
                     target="_blank"
