@@ -151,11 +151,11 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                                     <SelectContent>
                                         <SelectGroup>
                                             <SelectLabel>Select Input Type</SelectLabel>
-                                            <SelectItem value="humidity_ratio">Humidity Ratio</SelectItem>
-                                            <SelectItem value="relative_humidity">Relative Humidity</SelectItem>
-                                            <SelectItem value="t_wet_bulb">Wet-bulb Temperature</SelectItem>
-                                            <SelectItem value="t_dew_point">Dew-point Temperature</SelectItem>
-                                            <SelectItem value="specific_enthalpy">Specific Enthalpy</SelectItem>
+                                            <SelectItem value="humidity_ratio">Humidity Ratio [kg/kg]</SelectItem>
+                                            <SelectItem value="relative_humidity">Relative Humidity [%]</SelectItem>
+                                            <SelectItem value="t_wet_bulb">Wet-bulb Temperature [°C]</SelectItem>
+                                            <SelectItem value="t_dew_point">Dew-point Temperature [°C]</SelectItem>
+                                            <SelectItem value="specific_enthalpy">Specific Enthalpy [kJ/kg]</SelectItem>
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
