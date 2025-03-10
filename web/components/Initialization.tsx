@@ -31,11 +31,11 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
     ({ onInitialize }: { onInitialize: (initialStateInput: InitialState) => void }, ref: React.ForwardedRef<InitializationRef>) => {
         const defaultValues = {
             pressure: "101325.0",
-            flowRateType: "dry_air_mass_flow_rate",
-            flowRateValue: "3.3333",
+            flowRateType: "volumetric_flow_rate",
+            flowRateValue: "1500.0",
             value1: "30.0",
-            inputType2: "humidity_ratio",
-            value2: "0.01"
+            inputType2: "relative_humidity",
+            value2: "50.0"
         };
 
         const [pressureInput, setPressureInput] = useState<string>(defaultValues.pressure);
@@ -75,7 +75,7 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
         const getRangeForInputType = (inputType: string) => {
             switch (inputType) {
                 case "humidity_ratio":
-                    return { min: 0.0, max: 0.030 };
+                    return { min: 0.0, max: undefined };
                 case "relative_humidity":
                     return { min: 0.0, max: 100.0 };
                 case "t_wet_bulb":
@@ -124,16 +124,16 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Select onValueChange={setFlowRateType} defaultValue="dry_air_mass_flow_rate">
+                                <Select onValueChange={setFlowRateType} defaultValue="volumetric_flow_rate">
                                     <SelectTrigger className="w-full py-1 h-9">
-                                        <SelectValue placeholder="dry_air_mass_flow_rate" />
+                                        <SelectValue placeholder="volumetric_flow_rate" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectGroup>
                                             <SelectLabel>Select Input Type</SelectLabel>
                                             <SelectItem value="total_air_mass_flow_rate">Total air mass flow rate [kg/s]</SelectItem>
                                             <SelectItem value="dry_air_mass_flow_rate">Dry air mass flow rate [kg/s]</SelectItem>
-                                            <SelectItem value="volumetric_flow_rate">Volumetric flow rate [m³/s]</SelectItem>
+                                            <SelectItem value="volumetric_flow_rate">Volumetric flow rate [m³/h]</SelectItem>
                                         </SelectGroup>
                                     </SelectContent>
                                 </Select>
@@ -144,9 +144,9 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                                 />
                             </div>
                             <div className="space-y-1">
-                                <Select onValueChange={setInputType2} defaultValue="humidity_ratio">
+                                <Select onValueChange={setInputType2} defaultValue="relative_humidity">
                                     <SelectTrigger className="w-full py-1 h-9">
-                                        <SelectValue placeholder="humidity_ratio" />
+                                        <SelectValue placeholder="relative_humidity" />
                                     </SelectTrigger>
                                     <SelectContent>
                                         <SelectGroup>

@@ -95,7 +95,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                 );
             case "Cooling":
                 return (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>
@@ -140,7 +140,7 @@ const ProcessCard = ({ processData, onChange }: ProcessCardProps) => {
                 );
             case "Humidify":
                 return (
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
                         {/* Top Row */}
                         <div>
                             <Label>Process Type</Label>

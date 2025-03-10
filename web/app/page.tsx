@@ -56,12 +56,12 @@ export type ChartSettings = {
 
 const initialStateDefault: InitialState = {
   pressure: 101325,
-  flowRateType: "dry_air_mass_flow_rate",
-  flowRateValue: 3.3333,
+  flowRateType: "volumetric_flow_rate",
+  flowRateValue: 1500.0,
   parameterType1: "t_dry_bulb",
   value1: 30.0,
-  parameterType2: "humidity_ratio",
-  value2: 0.01
+  parameterType2: "relative_humidity",
+  value2: 50.0
 };
 
 const Page = () => {
@@ -225,7 +225,7 @@ const Page = () => {
         } else if (initialState.flowRateType === "dry_air_mass_flow_rate") {
           dryAirMassFlowRate = initialState.flowRateValue;
         } else if (initialState.flowRateType === "volumetric_flow_rate") {
-          dryAirMassFlowRate = initialState.flowRateValue * moistAir.density() / (1 + moistAir.humidityRatio());
+          dryAirMassFlowRate = initialState.flowRateValue / 3600.0 * moistAir.density() / (1 + moistAir.humidityRatio());
         } else {
           throw new Error("Invalid flow rate type");
         }
