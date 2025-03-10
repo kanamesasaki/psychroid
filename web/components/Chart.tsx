@@ -356,10 +356,18 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
             .style('font-size', '12px')
             .style('pointer-events', 'none');
 
+        // Filter states that are within the plot boundaries
+        const filteredStates = states.filter(state =>
+            state.tDryBulb >= xMin &&
+            state.tDryBulb <= xMax &&
+            state.humidityRatio >= yMin &&
+            state.humidityRatio <= yMax
+        );
+
         // Remove existing points
         svg.selectAll('.state-point').remove();
         svg.selectAll('.state-point')
-            .data(states)
+            .data(filteredStates)
             .enter()
             .append('circle')
             .attr('cx', d => xScale(d.tDryBulb))
@@ -387,7 +395,7 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
 
         svg.selectAll('.state-label').remove();
         svg.selectAll('.state-label')
-            .data(states)
+            .data(filteredStates)
             .enter()
             .append('text')
             .attr('class', 'state-label')
