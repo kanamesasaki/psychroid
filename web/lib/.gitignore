@@ -1,6 +1,1 @@
 *
-!*.js
-!*.ts
-!*.d.ts
-!*.wasm
-!.gitignore

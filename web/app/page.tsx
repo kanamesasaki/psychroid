@@ -119,6 +119,7 @@ const Page = () => {
 
   // Get enthalpy lines using WASM module
   const getEnthalpyLines = (): Line[] => {
+    // enthalpy values: -10, 0, ... 110 kJ/kg
     const enthalpyValues = Array.from({ length: 13 }, (_, i) => (i - 1) * 10);
     const enthalpyLines: Line[] = [];
 

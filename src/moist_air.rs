@@ -161,6 +161,28 @@ impl MoistAir {
         }
     }
 
+    pub fn from_specific_enthalpy_relative_humidity(
+        specific_enthalpy: f64,
+        relative_humidity: f64,
+        pressure: f64,
+        unit: UnitSystem,
+    ) -> Result<Self, PsychroidError> {
+        let t_dry_bulb = t_dry_bulb_from_specific_enthalpy_relative_humidity(
+            specific_enthalpy,
+            relative_humidity,
+            pressure,
+            unit,
+        )?;
+        let humidity_ratio =
+            humidity_ratio_from_specific_enthalpy(t_dry_bulb, specific_enthalpy, unit);
+        Ok(MoistAir {
+            t_dry_bulb,
+            humidity_ratio,
+            pressure,
+            unit,
+        })
+    }
+
     pub fn humidity_ratio(&self) -> f64 {
         self.humidity_ratio
     }

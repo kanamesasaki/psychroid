@@ -311,11 +311,11 @@ const Chart = ({ rhLines, enthalpyLines, states }: ChartProps) => {
                 .attr('stroke-width', 0.5)
                 .attr('d', enthalpyLineFunc);
 
-            // Add enthalpy labels at the end of each line
-            const lastPoint = lineData.data[lineData.data.length - 3];
+            // Add enthalpy labels at the beginning of each line
+            const firstPoint = lineData.data[0];
             svg.append('text')
-                .attr('x', xScale(lastPoint.x) + 5)
-                .attr('y', yScale(lastPoint.y))
+                .attr('x', xScale(firstPoint.x) - 15)
+                .attr('y', yScale(firstPoint.y) - 4)
                 .attr('fill', '#666666')
                 .attr('font-size', '6px')
                 .attr('text-anchor', 'start')

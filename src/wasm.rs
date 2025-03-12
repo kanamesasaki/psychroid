@@ -90,13 +90,34 @@ pub fn specificEnthalpyLine(
     t_min: isize,
     t_max: isize,
     is_si: bool,
-) -> Vec<WasmPoint> {
+) -> Result<Vec<WasmPoint>, JsError> {
     let unit = if is_si {
         UnitSystem::SI
     } else {
         UnitSystem::IP
     };
-    let t_array: Vec<f64> = (t_min..=t_max).step_by(5).map(|x| x as f64).collect();
+
+    let moist_air_rh1 =
+        match MoistAir::from_specific_enthalpy_relative_humidity(h, 1.0, pressure, unit) {
+            Ok(ma) => ma,
+            Err(err) => return Err(to_js_error(err)),
+        };
+    let t_dry_bulb_rh1 = moist_air_rh1.t_dry_bulb();
+    let moist_air_rh0 =
+        match MoistAir::from_specific_enthalpy_relative_humidity(h, 0.0, pressure, unit) {
+            Ok(ma) => ma,
+            Err(err) => return Err(to_js_error(err)),
+        };
+    let t_dry_bulb_rh0 = moist_air_rh0.t_dry_bulb();
+
+    // enthalpy line should start at either: t_dry_bulb_rh0 or t_min
+    // enthalpy line should end at either  : t_dry_bulb_rh1 or t_max
+    let t_start = f64::max(t_dry_bulb_rh1, t_min as f64);
+    let t_end = f64::min(t_dry_bulb_rh0, t_max as f64);
+
+    // Generate data points for constant specific enthalpy line
+    // Since the line is assumed to be linear, we only generate start and end points
+    let t_array: [f64; 2] = [t_start, t_end];
     let point_array: Vec<WasmPoint> = t_array
         .iter()
         .map(|&t_dry_bulb| {
@@ -107,7 +128,7 @@ pub fn specificEnthalpyLine(
             }
         })
         .collect();
-    point_array
+    Ok(point_array)
 }
 
 /// A WASM-friendly wrapper around the MoistAir struct.

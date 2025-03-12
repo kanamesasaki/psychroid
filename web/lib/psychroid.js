@@ -64,6 +64,11 @@ export function relativeHumidityLine(phi, pressure, t_min, t_max, is_si) {
     return v1;
 }
 
+function takeFromExternrefTable0(idx) {
+    const value = wasm.__wbindgen_export_0.get(idx);
+    wasm.__externref_table_dealloc(idx);
+    return value;
+}
 /**
  * Generates data points for constant specific enthalpy line on psychrometric chart
  * <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
@@ -96,15 +101,12 @@ export function relativeHumidityLine(phi, pressure, t_min, t_max, is_si) {
  */
 export function specificEnthalpyLine(h, pressure, t_min, t_max, is_si) {
     const ret = wasm.specificEnthalpyLine(h, pressure, t_min, t_max, is_si);
+    if (ret[3]) {
+        throw takeFromExternrefTable0(ret[2]);
+    }
     var v1 = getArrayJsValueFromWasm0(ret[0], ret[1]).slice();
     wasm.__wbindgen_free(ret[0], ret[1] * 4, 4);
     return v1;
-}
-
-function takeFromExternrefTable0(idx) {
-    const value = wasm.__wbindgen_export_0.get(idx);
-    wasm.__externref_table_dealloc(idx);
-    return value;
 }
 
 const WasmMoistAirFinalization = (typeof FinalizationRegistry === 'undefined')
