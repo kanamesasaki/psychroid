@@ -344,7 +344,10 @@ export class WasmMoistAir {
      * @param {number} w
      */
     humidifyIsothermal(mda, w) {
-        wasm.wasmmoistair_humidifyIsothermal(this.__wbg_ptr, mda, w);
+        const ret = wasm.wasmmoistair_humidifyIsothermal(this.__wbg_ptr, mda, w);
+        if (ret[1]) {
+            throw takeFromExternrefTable0(ret[0]);
+        }
     }
 }
 

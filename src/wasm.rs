@@ -360,7 +360,10 @@ impl WasmMoistAir {
     /// Humidification process
     #[wasm_bindgen]
     #[allow(non_snake_case)]
-    pub fn humidifyIsothermal(&mut self, mda: f64, w: f64) {
-        self.inner.humidify_isothermal(mda, w);
+    pub fn humidifyIsothermal(&mut self, mda: f64, w: f64) -> Result<(), JsError> {
+        match self.inner.humidify_isothermal(mda, w) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(to_js_error(e)),
+        }
     }
 }

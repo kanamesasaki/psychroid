@@ -167,7 +167,7 @@ export interface InitOutput {
   readonly wasmmoistair_coolingPower: (a: number, b: number, c: number) => [number, number];
   readonly wasmmoistair_coolingDeltaTemperature: (a: number, b: number, c: number) => [number, number, number];
   readonly wasmmoistair_humidifyAdiabatic: (a: number, b: number, c: number) => [number, number];
-  readonly wasmmoistair_humidifyIsothermal: (a: number, b: number, c: number) => void;
+  readonly wasmmoistair_humidifyIsothermal: (a: number, b: number, c: number) => [number, number];
   readonly __wbindgen_export_0: WebAssembly.Table;
   readonly __externref_drop_slice: (a: number, b: number) => void;
   readonly __wbindgen_free: (a: number, b: number, c: number) => void;

@@ -141,6 +141,8 @@ const Initialization = forwardRef<InitializationRef, { onInitialize: (initialSta
                                     type="number"
                                     value={flowRateInput}
                                     onChange={(e) => setFlowRateInput(e.target.value)}
+                                    min={0.0}
+                                    step="any"
                                 />
                             </div>
                             <div className="space-y-1">

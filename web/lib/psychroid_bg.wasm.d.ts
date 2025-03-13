@@ -26,7 +26,7 @@ export const wasmmoistair_heatingDeltaTemperature: (a: number, b: number, c: num
 export const wasmmoistair_coolingPower: (a: number, b: number, c: number) => [number, number];
 export const wasmmoistair_coolingDeltaTemperature: (a: number, b: number, c: number) => [number, number, number];
 export const wasmmoistair_humidifyAdiabatic: (a: number, b: number, c: number) => [number, number];
-export const wasmmoistair_humidifyIsothermal: (a: number, b: number, c: number) => void;
+export const wasmmoistair_humidifyIsothermal: (a: number, b: number, c: number) => [number, number];
 export const __wbindgen_export_0: WebAssembly.Table;
 export const __externref_drop_slice: (a: number, b: number) => void;
 export const __wbindgen_free: (a: number, b: number, c: number) => void;

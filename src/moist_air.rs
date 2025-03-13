@@ -492,9 +492,11 @@ impl MoistAir {
         Ok(())
     }
 
-    pub fn humidify_isothermal(&mut self, mda: f64, water: f64) {
+    pub fn humidify_isothermal(&mut self, mda: f64, water: f64) -> Result<(), PsychroidError> {
         let w1 = self.humidity_ratio + water / mda;
         self.humidity_ratio = w1;
+        self.relative_humidity()?;
+        Ok(())
     }
 
     pub fn cooling_saturation(&mut self, mda: f64) -> Result<f64, PsychroidError> {
