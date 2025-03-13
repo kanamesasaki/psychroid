@@ -17,6 +17,8 @@ const C16_IP: f64 = 2.319;
 const C17_IP: f64 = 0.17074;
 const C18_IP: f64 = 1.2063;
 
+const TOLERANCE: f64 = 1e-8;
+
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
 // Moist Air
 ////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,7 +62,7 @@ impl MoistAir {
     ) -> Result<Self, PsychroidError> {
         let relative_humidity: f64 =
             relative_humidity_from_humidity_ratio(t_dry_bulb, humidity_ratio, pressure, unit)?;
-        if !(0.0..=1.0).contains(&relative_humidity) {
+        if !(0.0..=1.0 + TOLERANCE).contains(&relative_humidity) {
             return Err(PsychroidError::InvalidRelativeHumidity(relative_humidity));
         }
         Ok(MoistAir {
@@ -117,7 +119,7 @@ impl MoistAir {
         pressure: f64,
         unit: UnitSystem,
     ) -> Result<Self, PsychroidError> {
-        if !(0.0..=1.0).contains(&relative_humidity) {
+        if !(0.0..=1.0 + TOLERANCE).contains(&relative_humidity) {
             return Err(PsychroidError::InvalidRelativeHumidity(relative_humidity));
         }
         let humidity_ratio =
@@ -256,7 +258,7 @@ impl MoistAir {
             self.pressure,
             self.unit,
         )?;
-        if !(0.0..=1.0).contains(&value) {
+        if !(0.0..=1.0 + TOLERANCE).contains(&value) {
             return Err(PsychroidError::InvalidRelativeHumidity(value));
         }
         Ok(value)
