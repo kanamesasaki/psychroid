@@ -4,7 +4,7 @@ use crate::moist_air::MoistAir;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsError;
 
-// wasm-pack build --target web --out-dir web/lib
+// wasm-pack build --target web
 
 #[wasm_bindgen]
 pub struct WasmPoint {
