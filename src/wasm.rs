@@ -4,6 +4,7 @@ use crate::moist_air::MoistAir;
 use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsError;
 
+// For building the WebAssembly module, run:
 // wasm-pack build --target web
 
 #[wasm_bindgen]

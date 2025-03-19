@@ -193,7 +193,7 @@ impl MoistAir {
         self.t_dry_bulb
     }
 
-    /// Calculates the specific enthalpy of moist air
+    /// Returns the specific enthalpy of moist air
     ///
     /// # Returns
     /// The specific enthalpy \\(h\\):
@@ -218,7 +218,7 @@ impl MoistAir {
         specific_enthalpy_from_humidity_ratio(self.t_dry_bulb, self.humidity_ratio, self.unit)
     }
 
-    /// Calculates the relative humidity from humidity ratio and pressure
+    /// Returns the relative humidity of moist air
     ///
     /// # Returns
     /// Relative humidity [0-1]
@@ -233,7 +233,7 @@ impl MoistAir {
     /// - \\(p_{ws}\\) is saturation pressure of water vapor
     /// - \\(p\\) is total pressure
     /// - \\(W\\) is humidity ratio
-    /// - 0.621945 is the ratio of molecular mass of water vapor to dry air
+    /// - 0.621945 is the ratio of molecular mass (non-dimension) of water vapor to dry air
     ///
     /// # Example
     /// ```
@@ -264,10 +264,12 @@ impl MoistAir {
         Ok(value)
     }
 
+    /// Returns the dew point temperature of moist air
     pub fn t_dew_point(&self) -> Result<f64, PsychroidError> {
         t_dew_point_from_humidity_ratio(self.humidity_ratio, self.pressure, self.unit)
     }
 
+    /// Returns the wet bulb temperature of moist air
     pub fn t_wet_bulb(&self) -> Result<f64, PsychroidError> {
         t_wet_bulb_from_humidity_ratio(
             self.t_dry_bulb,
@@ -277,10 +279,32 @@ impl MoistAir {
         )
     }
 
+    /// Returns the specific volume of moist air
+    ///
+    /// # Formula
+    /// $$
+    /// \\begin{align}
+    /// v = 0.287042 (t + 273.15) (1 + 1.607858 W) / p \\quad &\\text{(SI)} \\\\
+    /// v = 0.370486 (t + 459.67) (1 + 1.607858 W) / p \\quad &\\text{(IP)}
+    /// \\end{align}
+    /// $$
+    /// where:
+    /// - \\(v\\) is the specific volume \\(V/M_{da}\\) in \\( \\mathrm{m^3/kg_{da}} \\) (SI) or \\( \\mathrm{ft^3/lb_{da}} \\) (IP)
+    /// - \\(t\\) is the dry bulb temperature in \\(^\\circ \\mathrm{C}\\) or \\(^\\circ \\mathrm{F}\\)
+    /// - \\(W\\) is the humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) or \\( \\mathrm{lb_w / lb_{da}} \\)
+    /// - \\(p\\) is the pressure in \\( \\mathrm{kPa} \\) (SI) or \\( \\mathrm{Psi} \\) (IP)
+    ///
     pub fn density(&self) -> f64 {
-        let specific_volume =
-            0.287042 * (self.t_dry_bulb + 273.15) * (1.0 + 1.607858 * self.humidity_ratio)
-                / (self.pressure * 0.001);
+        let specific_volume = match self.unit {
+            UnitSystem::SI => {
+                0.287042 * (self.t_dry_bulb + 273.15) * (1.0 + 1.607858 * self.humidity_ratio)
+                    / (self.pressure * 0.001)
+            }
+            UnitSystem::IP => {
+                0.370486 * (self.t_dry_bulb + 459.67) * (1.0 + 1.607858 * self.humidity_ratio)
+                    / self.pressure
+            }
+        };
         1.0 / specific_volume * (1.0 + self.humidity_ratio)
     }
 
@@ -423,6 +447,31 @@ impl MoistAir {
         Ok(mda * (h0 - h1))
     }
 
+    /// Calculates the temperature change for a given cooling energy removal
+    /// If the new temperature is expected to be below the dew point,
+    /// the new dry-bulb temperature is calculated based on the specific enthalpy and relative humidity of 1.0.
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\( \\mathrm{kg/s} \\) (SI) or \\( \\mathrm{lb/h} \\) (IP)
+    /// * `q` - Heating energy input \\( \\mathrm{kW} \\) (SI) or \\( \\mathrm{Btu/h} \\) (IP)
+    ///
+    /// # Returns
+    /// Estimated new dry-bulb temperature \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
+    ///
+    /// # Formula
+    /// Temperature change is estimated using:
+    /// $$
+    /// \begin{align}
+    /// \\Delta T &= \\frac{\\Delta h}{1.006 + 1.860 W} \\quad &\\text{(SI)} \\\\
+    /// \\Delta T &= \\frac{\\Delta h}{0.240 + 0.444 W} \\quad &\\text{(IP)}
+    /// \end{align}
+    /// $$
+    /// where:
+    /// - \\(\\Delta h = -q/\\dot{m}_{da}\\) is the specific enthalpy change
+    /// - \\(W\\) is the humidity ratio
+    ///
+    /// # Note
+    /// This provides an initial estimate and may need iteration for precise results
     pub fn cooling_q(&mut self, mda: f64, q: f64) -> Result<(), PsychroidError> {
         let dh = q / mda; // kJ/s
         let h0 = self.specific_enthalpy();
@@ -494,6 +543,15 @@ impl MoistAir {
         Ok(())
     }
 
+    /// Calculates the state change when adding water to moist air (isothermal humidification)
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    /// * `water` - Mass of water added \\(\\mathrm{kg_w/s}\\) (SI) or \\(\\mathrm{lb_w/h}\\) (IP)
+    ///
+    /// # Description
+    /// Calculates the temperature and humidity ratio changes when water is added to an air stream.
+    /// The process is assumed to be isothermal (constant dry-bulb temperature).
     pub fn humidify_isothermal(&mut self, mda: f64, water: f64) -> Result<(), PsychroidError> {
         let w1 = self.humidity_ratio + water / mda;
         self.humidity_ratio = w1;
@@ -589,6 +647,7 @@ fn humidity_ratio_from_t_wet_bulb_si(
     }
 }
 
+/// Calculate wet-bulb temperature from dry-bulb temperature and humidity ratio
 fn t_wet_bulb_from_humidity_ratio(
     t_dry_bulb: f64,
     humidity_ratio: f64,
@@ -830,6 +889,10 @@ fn humidity_ratio_from_t_dew_point(
     Ok(MASS_RATIO_WATER_DRY_AIR * saturation_pressure / (pressure - saturation_pressure))
 }
 
+/// Calculate the specific enthalpy from dry-bulb temperature and humidity ratio
+///
+/// ASHRAE Handbook - Fundamentals (2017) SI Ch. 1 Eq. (30)
+/// ASHRAE Handbook - Fundamentals (2017) IP Ch. 1 Eq. (30)
 fn specific_enthalpy_from_humidity_ratio(
     t_dry_bulb: f64,
     humidity_ratio: f64,
@@ -841,6 +904,10 @@ fn specific_enthalpy_from_humidity_ratio(
     }
 }
 
+/// Calculate the humidity ratio from specific enthalpy and dry-bulb temperature
+///
+/// ASHRAE Handbook - Fundamentals (2017) SI Ch. 1 Eq. (30)
+/// ASHRAE Handbook - Fundamentals (2017) IP Ch. 1 Eq. (30)
 fn humidity_ratio_from_specific_enthalpy(
     t_dry_bulb: f64,
     specific_enthalpy: f64,
@@ -852,6 +919,10 @@ fn humidity_ratio_from_specific_enthalpy(
     }
 }
 
+/// Calculate the dry-bulb temperature from specific enthalpy and humidity ratio
+///
+/// ASHRAE Handbook - Fundamentals (2017) SI Ch. 1 Eq. (30)
+/// ASHRAE Handbook - Fundamentals (2017) IP Ch. 1 Eq. (30)
 fn t_dry_bulb_from_specific_enthalpy_humidity_ratio(
     specific_enthalpy: f64,
     humidity_ratio: f64,
