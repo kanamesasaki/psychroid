@@ -185,10 +185,12 @@ impl MoistAir {
         })
     }
 
+    /// Returns the humidity ratio of moist air
     pub fn humidity_ratio(&self) -> f64 {
         self.humidity_ratio
     }
 
+    /// Returns the dry bulb temperature of moist air
     pub fn t_dry_bulb(&self) -> f64 {
         self.t_dry_bulb
     }
@@ -227,6 +229,7 @@ impl MoistAir {
     /// $$
     /// \\phi = \\frac{p_w}{p_{ws}} = \\frac{p \\cdot W}{(0.621945 + W) \\cdot p_{ws}}
     /// $$
+    ///
     /// where:
     /// - \\(\\phi\\) is relative humidity
     /// - \\(p_w\\) is partial pressure of water vapor
@@ -234,21 +237,6 @@ impl MoistAir {
     /// - \\(p\\) is total pressure
     /// - \\(W\\) is humidity ratio
     /// - 0.621945 is the ratio of molecular mass (non-dimension) of water vapor to dry air
-    ///
-    /// # Example
-    /// ```
-    /// use psychroid::{MoistAir, UnitSystem};
-    ///
-    /// let air = MoistAir::new(
-    ///     25.0,     // 25°C
-    ///     0.007,    // humidity ratio
-    ///     101325.0, // Pa
-    ///     UnitSystem::SI
-    /// );
-    ///
-    /// let rh = air.relative_humidity();
-    /// assert!(rh >= 0.0 && rh <= 1.0);
-    /// ```
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn relative_humidity(&self) -> Result<f64, PsychroidError> {
@@ -297,6 +285,7 @@ impl MoistAir {
     pub fn density(&self) -> f64 {
         let specific_volume = match self.unit {
             UnitSystem::SI => {
+                // pressure in kPa
                 0.287042 * (self.t_dry_bulb + 273.15) * (1.0 + 1.607858 * self.humidity_ratio)
                     / (self.pressure * 0.001)
             }
@@ -661,22 +650,26 @@ fn t_wet_bulb_from_humidity_ratio(
 }
 
 /// Calculate wet-bulb temperature from dry-bulb temperature and humidity ratio
+/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 ///
 /// # Formula
 /// The wet-bulb temperature for given dry-bulb temperature and humidity ratio shall satisfy the equation:
+///
 /// $$
-/// \begin{align}
-/// f = W(2501 + 1.86t) - 4.186t^* - (2501 - 2.326t^*) W_s^* + 1.006(t - t^*) = 0, \quad t \geq 0 \\\\
-/// f = W(2830 + 1.86t) - 2.100t^* - (2830 - 0.240t^*) W_s^* + 1.006(t - t^*) = 0, \quad t < 0
-/// \end{align}
+/// \\begin{align}
+/// f &= W (2501 + 1.86t - 4.186t^\*) - (2501 - 2.326t^\*) W_s^* + 1.006(t - t^\*) = 0, \\quad t \\geq 0 \\\\
+/// f &= W (2830 + 1.86t - 2.100t^\*) - (2830 - 0.240t^\*) W_s^* + 1.006(t - t^\*) = 0, \\quad t < 0
+/// \\end{align}
 /// $$
+///
 /// The corresponding root of this equation is searched using Newton-Raphson method.
 /// The derivative of the function is:
+///
 /// $$
-/// \begin{align}
-/// f' = -4.186W - 2501 \frac{dp_s^*}{dt^*} + 2.326W_s^* + 2.326t^* \frac{dp_s^*}{dt^*} - 1.006, \quad t \geq 0 \\\\
-/// f' = -2.100W - 2830 \frac{dp_s^*}{dt^*} + 0.240W_s^* + 0.240t^* \frac{dp_s^*}{dt^*} - 1.006, \quad t < 0
-/// \end{align}
+/// \\begin{align}
+/// f' &= -4.186W - 2501 \\frac{dW_s^\*}{dt^\*} + 2.326W_s^* + 2.326t^* \\frac{dW_s^\*}{dt^\*} - 1.006, \\quad t \\geq 0 \\\\
+/// f' &= -2.100W - 2830 \\frac{dW_s^\*}{dt^\*} + 0.240W_s^* + 0.240t^* \\frac{dW_s^\*}{dt^\*} - 1.006, \\quad t < 0
+/// \\end{align}
 /// $$
 ///
 fn t_wet_bulb_from_humidity_ratio_si(
@@ -734,6 +727,26 @@ fn t_wet_bulb_from_humidity_ratio_si(
     Ok(root)
 }
 
+/// Calculate wet-bulb temperature from dry-bulb temperature and humidity ratio
+/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+///
+/// # Formula
+/// The wet-bulb temperature for given dry-bulb temperature and humidity ratio shall satisfy the equation:
+/// $$
+/// \\begin{align}
+/// f &= W(1093 + 0.444t - 1.00t^\*) - (1093 - 0.556t^\*) W_s^\* + 0.240(t - t^\*) = 0,\\quad t^\* \geq 32 \\\\
+/// f &= W(1220 + 0.444t - 0.48t^\*) - (1220 - 0.040t^\*) W_s^\* + 0.240(t - t^\*) = 0,\quad t^\* < 32
+/// \\end{align}
+/// $$
+/// The corresponding root of this equation is searched using Newton-Raphson method.
+/// The derivative of the function is:
+/// $$
+/// \\begin{align}
+/// f' = -1.00W - 1093 \frac{dW_s^\*}{dt^\*} + 0.556W_s^\* + 0.556 t^\* \frac{dW_s^\*}{dt^\*} - 0.240, \quad t \geq 0 \\\\
+/// f' = -0.48W - 1220 \frac{dW_s^\*}{dt^\*} + 0.040W_s^\* + 0.040 t^\* \frac{dW_s^\*}{dt^\*} - 0.240, \quad t < 0
+/// \\end{align}
+/// $$
+///
 fn t_wet_bulb_from_humidity_ratio_ip(
     t_dry_bulb: f64,
     humidity_ratio: f64,
@@ -770,14 +783,15 @@ fn t_wet_bulb_from_humidity_ratio_ip(
 
         match t_wet_bulb >= FREEZING_POINT_WATER_IP {
             true => {
-                -humidity_ratio - (1093.0 - 0.556 * t_wet_bulb) * deriv_saturation_humidity_ratio
+                -humidity_ratio - 1093.0 * deriv_saturation_humidity_ratio
                     + 0.556 * saturation_humidity_ratio
+                    + 0.556 * t_wet_bulb * deriv_saturation_humidity_ratio
                     - 0.240
             }
             false => {
-                -0.480 * humidity_ratio
-                    - (1220.0 - 0.040 * t_wet_bulb) * deriv_saturation_humidity_ratio
+                -0.480 * humidity_ratio - 1220.0 * deriv_saturation_humidity_ratio
                     + 0.040 * saturation_humidity_ratio
+                    + 0.040 * t_wet_bulb * deriv_saturation_humidity_ratio
                     - 0.240
             }
         }
@@ -817,6 +831,8 @@ fn relative_humidity_from_humidity_ratio(
     Ok(water_pressure / saturated_water_vapor.saturation_pressure())
 }
 
+/// Calculate the dew point temperature from dry-bulb temperature and relative humidity
+/// If the relative humidity is 0 or very close to 0, NaN is returned as the dew point temperature
 fn t_dew_point_from_humidity_ratio(
     humidity_ratio: f64,
     pressure: f64,
