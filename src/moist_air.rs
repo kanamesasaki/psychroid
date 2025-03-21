@@ -98,21 +98,6 @@ impl MoistAir {
     /// * `relative_humidity` - Relative humidity [0.0, 1.0]
     /// * `pressure` - Atmospheric pressure  \\(\\mathrm{Pa}\\) (SI) or  \\(\\mathrm{Psi}\\) (IP)
     /// * `unit` - Unit system (SI or IP)
-    ///
-    /// # Returns
-    /// Returns a new MoistAir instance
-    ///
-    /// # Example
-    /// ```
-    /// use psychroid::{MoistAir, UnitSystem};
-    ///
-    /// let air = MoistAir::from_t_dry_bulb_relative_humidity(
-    ///     25.0,     // 25°C
-    ///     0.5,      // 50% RH
-    ///     101325.0, // Standard atmospheric pressure
-    ///     UnitSystem::SI
-    /// );
-    /// ```
     pub fn from_t_dry_bulb_relative_humidity(
         t_dry_bulb: f64,
         relative_humidity: f64,
@@ -132,6 +117,7 @@ impl MoistAir {
         })
     }
 
+    /// Creates a new MoistAir instance from dry-bulb and dew-point temperatures
     pub fn from_t_dry_bulb_t_dew_point(
         t_dry_bulb: f64,
         t_dew_point: f64,
@@ -147,6 +133,7 @@ impl MoistAir {
         })
     }
 
+    /// Creates a new MoistAir instance from dry-bulb temperature and specific enthalpy
     pub fn from_t_dry_bulb_enthalpy(
         t_dry_bulb: f64,
         specific_enthalpy: f64,
@@ -163,6 +150,7 @@ impl MoistAir {
         }
     }
 
+    /// Creates a new MoistAir instance from specific enthalpy and relative humidity
     pub fn from_specific_enthalpy_relative_humidity(
         specific_enthalpy: f64,
         relative_humidity: f64,
@@ -198,22 +186,20 @@ impl MoistAir {
     /// Returns the specific enthalpy of moist air
     ///
     /// # Returns
-    /// The specific enthalpy \\(h\\):
-    /// - \\( \\mathrm{kJ/kg_{da}} \\) for SI units
-    /// - \\( \\mathrm{Btu/lb_{da}} \\) for IP units
+    /// Specific enthalpy \\(h\\), in \\( \\mathrm{kJ/kg_{da}} \\) (SI) or \\( \\mathrm{Btu/lb_{da}} \\) (IP)
     ///
     /// # Formula
     ///
     /// $$
     /// \\begin{align}
-    /// \\mathrm{SI~units:}\\quad h &= 1.006~t + W (2501.0 + 1.86~t) \\\\
-    /// \\mathrm{IP~units:}\\quad h &= 0.240~t + W (1061.0 + 0.444~t)
+    /// h &= 1.006~t_\mathrm{da} + W (2501.0 + 1.860~t_\mathrm{da}) \\quad &\\text{(SI)} \\\\
+    /// h &= 0.240~t_\mathrm{da} + W (1061.0 + 0.444~t_\mathrm{da}) \\quad &\\text{(IP)}
     /// \\end{align}
     /// $$
     ///
     /// where:
-    /// - \\(t\\) is the dry bulb temperature in \\(^\\circ \\mathrm{C}\\) or \\(^\\circ \\mathrm{F}\\)
-    /// - \\(W\\) is the humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) or \\( \\mathrm{lb_w / lb_{da}} \\)
+    /// - \\(t_\mathrm{da}\\) - dry bulb temperature in \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
+    /// - \\(W\\) - humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) (SI) or \\( \\mathrm{lb_w / lb_{da}} \\) (IP)
     ///
     /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn specific_enthalpy(&self) -> f64 {
@@ -223,22 +209,20 @@ impl MoistAir {
     /// Returns the relative humidity of moist air
     ///
     /// # Returns
-    /// Relative humidity [0-1]
+    /// Relative humidity \\(\\phi\\) [0.0 - 1.0]
     ///
     /// # Formula
     /// $$
-    /// \\phi = \\frac{p_w}{p_{ws}} = \\frac{p \\cdot W}{(0.621945 + W) \\cdot p_{ws}}
+    /// \\phi = \\frac{p_\mathrm{w}}{p_\mathrm{ws}} = \\frac{pW}{(0.621945 + W) p_\mathrm{ws}}
     /// $$
     ///
     /// where:
-    /// - \\(\\phi\\) is relative humidity
-    /// - \\(p_w\\) is partial pressure of water vapor
-    /// - \\(p_{ws}\\) is saturation pressure of water vapor
-    /// - \\(p\\) is total pressure
-    /// - \\(W\\) is humidity ratio
-    /// - 0.621945 is the ratio of molecular mass (non-dimension) of water vapor to dry air
+    /// - \\(p_\mathrm{w}\\) - partial pressure of water vapor
+    /// - \\(p_\mathrm{ws}\\) - saturation pressure of water vapor
+    /// - \\(p\\) - total pressure
+    /// - \\(W\\) - humidity ratio (non-dimensional)
+    /// - 0.621945 - ratio of molecular mass (non-dimensional) of water vapor to dry air
     ///
-    /// Reference: ASHRAE Fundamentals Handbook (2017) Chapter 1
     pub fn relative_humidity(&self) -> Result<f64, PsychroidError> {
         let value = relative_humidity_from_humidity_ratio(
             self.t_dry_bulb,
@@ -269,18 +253,21 @@ impl MoistAir {
 
     /// Returns the specific volume of moist air
     ///
+    /// # Returns
+    /// Specific volume \\(v\\) is the specific volume \\(V/M_{da}\\) in \\( \\mathrm{m^3/kg_{da}} \\) (SI) or \\( \\mathrm{ft^3/lb_{da}} \\) (IP)
+    ///
     /// # Formula
     /// $$
     /// \\begin{align}
-    /// v = 0.287042 (t + 273.15) (1 + 1.607858 W) / p \\quad &\\text{(SI)} \\\\
-    /// v = 0.370486 (t + 459.67) (1 + 1.607858 W) / p \\quad &\\text{(IP)}
+    /// v = 0.287042 (t_\mathrm{db} + 273.15) (1 + 1.607858 W) / p \\quad &\\text{(SI)} \\\\
+    /// v = 0.370486 (t_\mathrm{db} + 459.67) (1 + 1.607858 W) / p \\quad &\\text{(IP)}
     /// \\end{align}
     /// $$
     /// where:
-    /// - \\(v\\) is the specific volume \\(V/M_{da}\\) in \\( \\mathrm{m^3/kg_{da}} \\) (SI) or \\( \\mathrm{ft^3/lb_{da}} \\) (IP)
-    /// - \\(t\\) is the dry bulb temperature in \\(^\\circ \\mathrm{C}\\) or \\(^\\circ \\mathrm{F}\\)
-    /// - \\(W\\) is the humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) or \\( \\mathrm{lb_w / lb_{da}} \\)
-    /// - \\(p\\) is the pressure in \\( \\mathrm{kPa} \\) (SI) or \\( \\mathrm{Psi} \\) (IP)
+    /// -
+    /// - \\(t_\\mathrm{db}\\) - dry bulb temperature in \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
+    /// - \\(W\\) -  humidity ratio in \\( \\mathrm{kg_w / kg_{da}} \\) (SI) or \\( \\mathrm{lb_w / lb_{da}} \\) (IP)
+    /// - \\(p\\) - total pressure in \\( \\mathrm{kPa} \\) (SI) or \\( \\mathrm{Psi} \\) (IP)
     ///
     pub fn density(&self) -> f64 {
         let specific_volume = match self.unit {
@@ -337,33 +324,15 @@ impl MoistAir {
     }
 
     /// Calculates the heating energy required to change the dry-bulb temperature to a target temperature
+    /// This method modifies the dry-bulb temperature of the instance to the target temperature
     ///
     /// # Arguments
     /// * `mda` - Mass flow rate of dry air \\( \\mathrm{kg/s} \\) (SI) or \\( \\mathrm{lb/h} \\) (IP)
     /// * `t1` - Target dry-bulb temperature \\(^\\circ \\mathrm{C}\\)  (SI) or \\(^\\circ \\mathrm{F}\\)  (IP)
     ///
     /// # Returns
-    /// The heating energy required:
-    /// * \\(q~\\mathrm{kW}\\) for SI units
-    /// * \\(q~\\mathrm{Btu/h}\\) for IP units
+    /// Heating energy \\(q\\) required in \\( \\mathrm{kW} \\) (SI) or \\( \\mathrm{Btu/h} \\) (IP)
     ///
-    /// # Example
-    /// ```
-    /// use psychroid::{MoistAir, UnitSystem};
-    ///
-    /// let mut air = MoistAir::new(
-    ///     20.0,     // Initial temperature: 20°C
-    ///     0.007,    // Humidity ratio
-    ///     101325.0, // Pressure: 101.325 kPa
-    ///     UnitSystem::SI
-    /// );
-    ///
-    /// // Calculate energy required to heat air to 25°C with 1.0 kg/s flow rate
-    /// let heating_energy = air.heating_t1(1.0, 25.0);
-    /// ```
-    ///
-    /// # Note
-    /// This method modifies the dry-bulb temperature of the instance to the target temperature
     pub fn heating_t1(&mut self, mda: f64, t1: f64) -> f64 {
         let h0 = self.specific_enthalpy();
         self.t_dry_bulb = t1;
@@ -371,6 +340,16 @@ impl MoistAir {
         mda * (h1 - h0)
     }
 
+    /// Calculates the heating energy required to change the dry-bulb temperature by a given amount
+    /// This method modifies the dry-bulb temperature of the instance to the target temperature
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\( \\mathrm{kg/s} \\) (SI) or \\( \\mathrm{lb/h} \\) (IP)
+    /// * `dt` - Temperature change \\(^\\circ \\mathrm{C}\\) (SI) or \\(^\\circ \\mathrm{F}\\) (IP)
+    ///
+    /// # Returns
+    /// Heating energy \\(q\\) required in \\( \\mathrm{kW} \\) (SI) or \\( \\mathrm{Btu/h} \\) (IP)
+    ///
     pub fn heating_dt(&mut self, mda: f64, dt: f64) -> f64 {
         let h0 = self.specific_enthalpy();
         self.t_dry_bulb += dt;
@@ -456,11 +435,8 @@ impl MoistAir {
     /// \end{align}
     /// $$
     /// where:
-    /// - \\(\\Delta h = -q/\\dot{m}_{da}\\) is the specific enthalpy change
-    /// - \\(W\\) is the humidity ratio
-    ///
-    /// # Note
-    /// This provides an initial estimate and may need iteration for precise results
+    /// - \\(\\Delta h = -q/\\dot{m}_{da}\\) -  specific enthalpy change
+    /// - \\(W\\) -  humidity ratio
     pub fn cooling_q(&mut self, mda: f64, q: f64) -> Result<(), PsychroidError> {
         let dh = q / mda; // kJ/s
         let h0 = self.specific_enthalpy();
@@ -490,7 +466,8 @@ impl MoistAir {
         Ok(())
     }
 
-    /// Calculates the state change when adding water to moist air (adiabatic humidification)
+    /// Calculates the state change when adding water to moist air (adiabatic humidification).
+    /// This method modifies both temperature and humidity ratio of the instance.
     ///
     /// # Arguments
     /// * `mda` - Mass flow rate of dry air \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
@@ -513,8 +490,6 @@ impl MoistAir {
     /// - \\(T_0,~T_1\\) are initial and final temperatures
     /// - \\(W_0,~W_1\\) are initial and final humidity ratios
     ///
-    /// # Note
-    /// This method modifies both temperature and humidity ratio of the instance
     pub fn humidify_adiabatic(&mut self, mda: f64, water: f64) -> Result<(), PsychroidError> {
         let w0 = self.humidity_ratio;
         let w1 = w0 + water / mda;
@@ -820,6 +795,7 @@ fn humidity_ratio_from_relative_humidity(
     Ok(MASS_RATIO_WATER_DRY_AIR * pw / (pressure - pw))
 }
 
+/// Calculates the relative humidity from dry-bulb temperature and humidity ratio
 fn relative_humidity_from_humidity_ratio(
     t_dry_bulb: f64,
     humidity_ratio: f64,
