@@ -930,6 +930,48 @@ fn t_dry_bulb_from_specific_enthalpy_humidity_ratio(
     }
 }
 
+/// Calculate the dry-bulb temperature from specific enthalpy and relative humidity.
+/// <script src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
+///
+/// # Formula
+/// For SI unit system, the dry-bulb temeprature can be determined by solving the equation:
+/// $$
+/// \begin{equation}
+/// h = 1.006 t_{db} + W (2501.0 + 1.860 t_{db}), \quad W = 0.621945 \frac{p_{w}}{p - p_{w}}
+/// \end{equation}
+/// $$
+/// By multiplying the equation by \\(p - p_{w}\\), the equation to solve becomes:
+/// $$
+/// \begin{gather}
+/// f(t_{db}) = (2501.0 \times 0.621945 + h) p_{w} + (1.860 \times 0.621945 - 1.006) t_{db}~p_{w} + 1.006 t_{db}~p - h p = 0
+/// \end{gather}
+/// $$
+/// The derivative of the function is:
+/// $$
+/// \begin{gather}
+/// \frac{df}{dt_{db}} = (2501.0 \times 0.621945 + h) \frac{dp_{w}}{dt_{db}} + (1.860 \times 0.621945 - 1.006) p_{w} + (1.860 \times 0.621945 - 1.006) t_{db} \frac{dp_{w}}{dt_{db}} + 1.006 p
+/// \end{gather}
+/// $$
+///
+/// For IP unit system, the dry-bulb temeprature can be determined by solving the equation:
+/// $$
+/// \begin{equation}
+/// h = 0.240 t_{db} + W (1061.0 + 0.444 t_{db}), \quad W = 0.621945 \frac{p_{w}}{p - p_{w}}
+/// \end{equation}
+/// $$
+/// By multiplying the equation by \\(p - p_{w}\\), the equation to solve becomes:
+/// $$
+/// \begin{gather}
+/// f(t_{db}) = (1061.0 \times 0.621945 + h) p_{w} + (0.444 \times 0.621945 - 0.240) t_{db}~p_{w} + 0.240 t_{db}~p - h p = 0
+/// \end{gather}
+/// $$
+/// The derivative of the function is:
+/// $$
+/// \begin{gather}
+/// \frac{df}{dt_{db}} = (1061.0 \times 0.621945 + h) \frac{dp_{w}}{dt_{db}} + (0.444 \times 0.621945 - 0.240) p_{w} + (0.444 \times 0.621945 - 0.240) t_{db} \frac{dp_{w}}{dt_{db}} + 0.240 p
+/// \end{gather}
+/// $$
+///
 fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
     specific_enthalpy: f64,
     relative_humidity: f64,
@@ -940,10 +982,26 @@ fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
         let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_dry_bulb, unit);
         let partial_water_vapor_pressure =
             relative_humidity * saturation_water_vapor.saturation_pressure();
-        (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy) * partial_water_vapor_pressure
-            + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006) * t_dry_bulb * partial_water_vapor_pressure
-            + 1.006 * pressure * t_dry_bulb
-            - specific_enthalpy * pressure
+        match unit {
+            UnitSystem::SI => {
+                (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy)
+                    * partial_water_vapor_pressure
+                    + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006)
+                        * t_dry_bulb
+                        * partial_water_vapor_pressure
+                    + 1.006 * pressure * t_dry_bulb
+                    - specific_enthalpy * pressure
+            }
+            UnitSystem::IP => {
+                (1061.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy)
+                    * partial_water_vapor_pressure
+                    + (0.444 * MASS_RATIO_WATER_DRY_AIR - 0.240)
+                        * t_dry_bulb
+                        * partial_water_vapor_pressure
+                    + 0.240 * pressure * t_dry_bulb
+                    - specific_enthalpy * pressure
+            }
+        }
     };
     let d = |t_dry_bulb: f64| {
         let saturation_water_vapor = SaturatedWaterVapor::new_relaxed(t_dry_bulb, unit);
@@ -951,10 +1009,24 @@ fn t_dry_bulb_from_specific_enthalpy_relative_humidity(
             relative_humidity * saturation_water_vapor.saturation_pressure();
         let deriv_partial_water_vapor_pressure =
             relative_humidity * saturation_water_vapor.deriv_saturation_pressure();
-        (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy) * deriv_partial_water_vapor_pressure
-            + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006)
-                * (partial_water_vapor_pressure + t_dry_bulb * deriv_partial_water_vapor_pressure)
-            + 1.006 * pressure
+        match unit {
+            UnitSystem::SI => {
+                (2501.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy)
+                    * deriv_partial_water_vapor_pressure
+                    + (1.860 * MASS_RATIO_WATER_DRY_AIR - 1.006)
+                        * (partial_water_vapor_pressure
+                            + t_dry_bulb * deriv_partial_water_vapor_pressure)
+                    + 1.006 * pressure
+            }
+            UnitSystem::IP => {
+                (1061.0 * MASS_RATIO_WATER_DRY_AIR + specific_enthalpy)
+                    * deriv_partial_water_vapor_pressure
+                    + (0.444 * MASS_RATIO_WATER_DRY_AIR - 0.240)
+                        * (partial_water_vapor_pressure
+                            + t_dry_bulb * deriv_partial_water_vapor_pressure)
+                    + 0.240 * pressure
+            }
+        }
     };
     let mut convergency = SimpleConvergency {
         eps: 1e-6f64,
