@@ -5,7 +5,7 @@ use wasm_bindgen::prelude::*;
 use wasm_bindgen::JsError;
 
 // For building the WebAssembly module, run:
-// wasm-pack build --target web
+// wasm-pack build --target web --out-dir ../psychroid-web/src/lib/
 
 #[wasm_bindgen]
 pub struct WasmPoint {
@@ -35,8 +35,8 @@ fn to_js_error(err: PsychroidError) -> JsError {
 pub fn relativeHumidityLine(
     phi: f64,
     pressure: f64,
-    t_min: isize,
-    t_max: isize,
+    t_min: f64,
+    t_max: f64,
     is_si: bool,
 ) -> Vec<WasmPoint> {
     let unit = if is_si {
@@ -44,7 +44,10 @@ pub fn relativeHumidityLine(
     } else {
         UnitSystem::IP
     };
-    let t_array: Vec<f64> = (t_min..=t_max).step_by(5).map(|x| x as f64).collect();
+    let num: usize = 20;
+    let t_array: Vec<f64> = (0..=num)
+        .map(|i| t_min + i as f64 * (t_max - t_min) / num as f64)
+        .collect();
     let point_array: Vec<WasmPoint> = t_array
         .iter()
         .map(|&t_dry_bulb| {
@@ -88,8 +91,8 @@ pub fn relativeHumidityLine(
 pub fn specificEnthalpyLine(
     h: f64,
     pressure: f64,
-    t_min: isize,
-    t_max: isize,
+    t_min: f64,
+    t_max: f64,
     is_si: bool,
 ) -> Result<Vec<WasmPoint>, JsError> {
     let unit = if is_si {
@@ -113,8 +116,8 @@ pub fn specificEnthalpyLine(
 
     // enthalpy line should start at either: t_dry_bulb_rh0 or t_min
     // enthalpy line should end at either  : t_dry_bulb_rh1 or t_max
-    let t_start = f64::max(t_dry_bulb_rh1, t_min as f64);
-    let t_end = f64::min(t_dry_bulb_rh0, t_max as f64);
+    let t_start = f64::max(t_dry_bulb_rh1, t_min);
+    let t_end = f64::min(t_dry_bulb_rh0, t_max);
 
     // Generate data points for constant specific enthalpy line
     // Since the line is assumed to be linear, we only generate start and end points

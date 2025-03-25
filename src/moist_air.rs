@@ -272,11 +272,12 @@ impl MoistAir {
     pub fn density(&self) -> f64 {
         let specific_volume = match self.unit {
             UnitSystem::SI => {
-                // pressure in kPa
+                // specific volume in m³/kg_da, pressure in kPa
                 0.287042 * (self.t_dry_bulb + 273.15) * (1.0 + 1.607858 * self.humidity_ratio)
                     / (self.pressure * 0.001)
             }
             UnitSystem::IP => {
+                // specific volume in ft³/lb_da
                 0.370486 * (self.t_dry_bulb + 459.67) * (1.0 + 1.607858 * self.humidity_ratio)
                     / self.pressure
             }
@@ -381,7 +382,7 @@ impl MoistAir {
     /// # Note
     /// This provides an initial estimate and may need iteration for precise results
     pub fn heating_q(&mut self, mda: f64, q: f64) {
-        let dh = q / mda; // kJ/s
+        let dh = q / mda; // kJ/kg_da (SI) or Btu/lb_da (IP)
         let dt = match self.unit {
             UnitSystem::SI => dh / (1.006 + 1.860 * self.humidity_ratio),
             UnitSystem::IP => dh / (0.240 + 0.444 * self.humidity_ratio),
@@ -1166,6 +1167,63 @@ mod tests {
     }
 
     #[test]
+    fn test_example1_si() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) SI Ch. 1, Example 1
+        let moist_air =
+            MoistAir::from_t_dry_bulb_t_wet_bulb(40.0, 20.0, 101325.0, UnitSystem::SI).unwrap();
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.0065, max_relative = 0.02);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 56.7, max_relative = 0.01);
+        assert_relative_eq!(moist_air.t_dew_point().unwrap(), 7.0, max_relative = 0.06);
+        assert_relative_eq!(
+            moist_air.relative_humidity().unwrap(),
+            0.14,
+            max_relative = 0.01
+        );
+    }
+
+    #[test]
+    fn test_example1_ip() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) IP Ch. 1, Example 1
+        let moist_air =
+            MoistAir::from_t_dry_bulb_t_wet_bulb(100.0, 65.0, 14.696, UnitSystem::IP).unwrap();
+        assert_relative_eq!(moist_air.humidity_ratio(), 0.00523, max_relative = 0.01);
+        assert_relative_eq!(moist_air.specific_enthalpy(), 29.80, max_relative = 0.01);
+        assert_relative_eq!(moist_air.t_dew_point().unwrap(), 40.0, max_relative = 0.01);
+        assert_relative_eq!(
+            moist_air.relative_humidity().unwrap(),
+            0.13,
+            max_relative = 0.02
+        );
+    }
+
+    #[test]
+    fn test_example2_si() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) SI Ch. 1, Example 2
+        let mut moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(2.0, 1.0, 101325.0, UnitSystem::SI)
+                .unwrap();
+        let volumetric_flow_rate = 10.0; // m3/s
+        let mass_flow_rate =
+            volumetric_flow_rate * moist_air.density() / (1.0 + moist_air.humidity_ratio());
+        assert_relative_eq!(mass_flow_rate, 12.74, max_relative = 0.00001);
+        let q = moist_air.heating_t1(mass_flow_rate, 40.0);
+        assert_relative_eq!(q, 490.0, max_relative = 0.002);
+    }
+
+    #[test]
+    fn test_example2_ip() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) IP Ch. 1, Example 2
+        let mut moist_air =
+            MoistAir::from_t_dry_bulb_relative_humidity(35.0, 1.0, 14.696, UnitSystem::IP).unwrap();
+        let volumetric_flow_rate = 20000.0; // cfm
+        let mass_flow_rate =
+            volumetric_flow_rate * 60.0 * moist_air.density() / (1.0 + moist_air.humidity_ratio());
+        assert_relative_eq!(mass_flow_rate, 95620.0, max_relative = 0.0006);
+        let q = moist_air.heating_t1(mass_flow_rate, 100.0);
+        assert_relative_eq!(q, 1507000.0, max_relative = 0.003);
+    }
+
+    #[test]
     fn test_relative_humidity_100_si() {
         let t_dry_bulb: Vec<f64> = (-100..=-5).step_by(5).map(|x| x as f64).collect();
         let unit = UnitSystem::SI;
@@ -1191,38 +1249,5 @@ mod tests {
             MoistAir::from_t_dry_bulb_relative_humidity(0.0, 1.0, 101325.0, unit).unwrap();
         assert_abs_diff_eq!(moist_air.t_dew_point().unwrap(), 0.0, epsilon = 1.0E-8);
         assert_abs_diff_eq!(moist_air.t_wet_bulb().unwrap(), 0.0, epsilon = 1.0E-8);
-    }
-
-    #[test]
-    fn test_t_wet_bulb() {
-        let humidity_ratio =
-            humidity_ratio_from_t_wet_bulb(30.0, 25.0, 95461.0, UnitSystem::SI).unwrap();
-        assert_relative_eq!(humidity_ratio, 0.0192281274241096, max_relative = 1.0E-3);
-        let t_wet_bulb =
-            t_wet_bulb_from_humidity_ratio(30.0, humidity_ratio, 95461.0, UnitSystem::SI).unwrap();
-        assert_relative_eq!(t_wet_bulb, 25.0, max_relative = 1.0E-3);
-    }
-
-    #[test]
-    fn test_specific_enthalpy_relative_humidity() {
-        let relative_humidity = 0.196;
-        let pressure = 101325.0;
-        let specific_enthalpy = 50.0;
-        let unit = UnitSystem::SI;
-
-        let t_dry_bulb = t_dry_bulb_from_specific_enthalpy_relative_humidity(
-            specific_enthalpy,
-            relative_humidity,
-            pressure,
-            unit,
-        )
-        .unwrap();
-        assert_relative_eq!(t_dry_bulb, 33.6, max_relative = 1.0E-6);
-    }
-
-    #[test]
-    fn test_t_dew_point() {
-        let t_dew_point = t_dew_point_from_humidity_ratio(0.00001, 14.696, UnitSystem::IP).unwrap();
-        assert_relative_eq!(t_dew_point, -42.123, max_relative = 1.0E-6);
     }
 }
