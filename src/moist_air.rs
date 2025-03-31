@@ -548,6 +548,74 @@ impl MoistAir {
         let h1 = self.specific_enthalpy();
         Ok(mda * (h1 - h0))
     }
+
+    /// Calculates the state of air resulting from mixing two airstreams
+    ///
+    /// # Arguments
+    /// * `mda1` - Mass flow rate of dry air in first airstream (self) \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    /// * `other` - Reference to the second MoistAir instance to be mixed
+    /// * `mda2` - Mass flow rate of dry air in second airstream (other) \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    ///
+    /// # Returns
+    /// Result containing the total dry air mass flow rate on success, or an error if:
+    /// - The two airstreams have different unit systems
+    /// - The two airstreams have significantly different pressures
+    /// - The resulting mixture has invalid psychrometric properties
+    ///
+    /// # Description
+    /// Calculates the properties of air resulting from mixing two airstreams with different properties.
+    /// The method applies mass and energy conservation principles:
+    /// - Mass conservation for dry air: \\(\\dot{m}_{da,mix} = \\dot{m}_{da,1} + \\dot{m}_{da,2}\\)
+    /// - Mass conservation for water vapor: \\(W_{mix} \\dot{m}_{da,mix} = W_1 \\dot{m}_{da,1} + W_2 \\dot{m}_{da,2}\\)
+    /// - Energy conservation: \\(h_{mix} \\dot{m}_{da,mix} = h_1 \\dot{m}_{da,1} + h_2 \\dot{m}_{da,2}\\)
+    ///
+    /// The first airstream (`self`) is modified to represent the resulting mixture.
+    ///
+    pub fn mixing(
+        &mut self,
+        mda1: f64,
+        other: &MoistAir,
+        mda2: f64,
+    ) -> Result<f64, PsychroidError> {
+        // Check both air states use the same unit system
+        if self.unit != other.unit {
+            return Err(PsychroidError::UnitMismatch);
+        }
+
+        // Check both air states use the same pressure
+        if (self.pressure - other.pressure).abs() > TOLERANCE * self.pressure {
+            return Err(PsychroidError::PressureMismatch {
+                p1: self.pressure,
+                p2: other.pressure,
+            });
+        }
+
+        // Mass balance for dry air is already handled by mda1 and mda2
+        // Mass balance for water vapor
+        let total_mda = mda1 + mda2;
+        let new_humidity_ratio =
+            (mda1 * self.humidity_ratio + mda2 * other.humidity_ratio) / total_mda;
+
+        // Energy balance - using specific enthalpy
+        let h1 = self.specific_enthalpy();
+        let h2 = other.specific_enthalpy();
+        let new_enthalpy = (mda1 * h1 + mda2 * h2) / total_mda;
+
+        // Calculate new dry bulb temperature from new_enthalpy and new_humidity_ratio
+        let new_t_dry_bulb = t_dry_bulb_from_specific_enthalpy_humidity_ratio(
+            new_enthalpy,
+            new_humidity_ratio,
+            self.unit,
+        );
+
+        // Update self with new values
+        self.t_dry_bulb = new_t_dry_bulb;
+        self.humidity_ratio = new_humidity_ratio;
+
+        // Verify the result with a reasonable humidity check
+        self.relative_humidity()?;
+        Ok(total_mda)
+    }
 }
 
 // calculate humidity ratio from dry-bulb and wet-bulb temperatures
@@ -1221,6 +1289,36 @@ mod tests {
         assert_relative_eq!(mass_flow_rate, 95620.0, max_relative = 0.0006);
         let q = moist_air.heating_t1(mass_flow_rate, 100.0);
         assert_relative_eq!(q, 1507000.0, max_relative = 0.003);
+    }
+
+    #[test]
+    fn test_example4_si() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) SI Ch. 1, Example 4
+        // Adiabatic mixing of two moist air streams
+        let mut moist_air1 =
+            MoistAir::from_t_dry_bulb_t_wet_bulb(4.0, 2.0, 101325.0, UnitSystem::SI).unwrap();
+        let moist_air2 =
+            MoistAir::from_t_dry_bulb_relative_humidity(25.0, 0.5, 101325.0, UnitSystem::SI)
+                .unwrap();
+        let mda1 = 2.00 * moist_air1.density() / (1.0 + moist_air1.humidity_ratio());
+        let mda2 = 6.25 * moist_air2.density() / (1.0 + moist_air2.humidity_ratio());
+        moist_air1.mixing(mda1, &moist_air2, mda2).unwrap();
+        assert_relative_eq!(moist_air1.t_dry_bulb(), 19.5, max_relative = 0.007);
+    }
+
+    #[test]
+    fn test_example4_ip() {
+        // Test case from ASHRAE Handbook - Fundamentals (2017) IP Ch. 1, Example 4
+        // Adiabatic mixing of two moist air streams
+        let mut moist_air1 =
+            MoistAir::from_t_dry_bulb_t_wet_bulb(40.0, 35.0, 14.696, UnitSystem::IP).unwrap();
+        let moist_air2 =
+            MoistAir::from_t_dry_bulb_relative_humidity(75.0, 0.5, 14.696, UnitSystem::IP).unwrap();
+        // Conversion of volumetric flow rate [cfm] to dry air mass flow rate [lb/h]
+        let mda1 = 5000.0 * moist_air1.density() / (1.0 + moist_air1.humidity_ratio()) * 60.0;
+        let mda2 = 15000.0 * moist_air2.density() / (1.0 + moist_air2.humidity_ratio()) * 60.0;
+        moist_air1.mixing(mda1, &moist_air2, mda2).unwrap();
+        assert_relative_eq!(moist_air1.t_dry_bulb(), 65.9, max_relative = 0.002);
     }
 
     #[test]

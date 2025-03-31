@@ -11,6 +11,12 @@ pub enum PsychroidError {
     /// Dry-bulb temperature is out of range
     InvalidTDryBulb { t_dry_bulb: f64, unit: UnitSystem },
 
+    /// Unit system mismatch
+    UnitMismatch,
+
+    /// Pressure mismatch while mixing
+    PressureMismatch { p1: f64, p2: f64 },
+
     /// その他の無効なパラメータ
     InvalidParameter(String),
 
@@ -31,6 +37,10 @@ impl fmt::Display for PsychroidError {
                 "Dry-bulb temperature {} is out of range for unit {:?}",
                 t_dry_bulb, unit
             ),
+            Self::UnitMismatch => write!(f, "Unit system mismatch"),
+            Self::PressureMismatch { p1, p2 } => {
+                write!(f, "Pressure mismatch : p1 = {}, p2 = {}", p1, p2)
+            }
             Self::InvalidParameter(msg) => write!(f, "Invalid parameter: {}", msg),
             Self::CalculationError(msg) => write!(f, "Calculation error: {}", msg),
         }

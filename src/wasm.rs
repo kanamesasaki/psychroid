@@ -370,4 +370,14 @@ impl WasmMoistAir {
             Err(e) => Err(to_js_error(e)),
         }
     }
+
+    /// Mixing process
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn mixing(&mut self, mda1: f64, other: &WasmMoistAir, mda2: f64) -> Result<f64, JsError> {
+        match self.inner.mixing(mda1, &other.inner, mda2) {
+            Ok(total_mda) => Ok(total_mda),
+            Err(e) => Err(to_js_error(e)),
+        }
+    }
 }
