@@ -371,6 +371,26 @@ impl WasmMoistAir {
         }
     }
 
+    /// Humidification process with liquid water at specified temperature
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn humidifyLiquid(&mut self, mda: f64, w: f64, t_water: f64) -> Result<(), JsError> {
+        match self.inner.humidify_liquid(mda, w, t_water) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(to_js_error(e)),
+        }
+    }
+
+    /// Humidification process with water vapor at specified temperature
+    #[wasm_bindgen]
+    #[allow(non_snake_case)]
+    pub fn humidifyVapor(&mut self, mda: f64, w: f64, t_vapor: f64) -> Result<(), JsError> {
+        match self.inner.humidify_vapor(mda, w, t_vapor) {
+            Ok(_) => Ok(()),
+            Err(e) => Err(to_js_error(e)),
+        }
+    }
+
     /// Mixing process
     #[wasm_bindgen]
     #[allow(non_snake_case)]

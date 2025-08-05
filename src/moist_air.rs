@@ -497,13 +497,130 @@ impl MoistAir {
 
         self.t_dry_bulb = match self.unit {
             UnitSystem::SI => {
-                ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2051.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
+                ((1.006 + 1.860 * w0) * self.t_dry_bulb - 2501.0 * (w1 - w0)) / (1.006 + 1.860 * w1)
             }
             UnitSystem::IP => {
                 ((0.240 + 0.444 * w0) * self.t_dry_bulb - 1061.0 * (w1 - w0)) / (0.240 + 0.444 * w1)
             }
         };
         self.humidity_ratio = w1;
+        self.relative_humidity()?;
+        Ok(())
+    }
+
+    /// Calculates the state change when adding liquid water at a given temperature to moist air.
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    /// * `water` - Mass of liquid water added \\(\\mathrm{kg_w/s}\\) (SI) or \\(\\mathrm{lb_w/h}\\) (IP)
+    /// * `t_water` - Temperature of the added liquid water \\(°C\\) (SI) or \\(°F\\) (IP)
+    ///
+    /// # Description
+    /// Calculates the temperature and humidity ratio changes when liquid water at a specific
+    /// temperature is added to an air stream. The liquid water evaporates, and the latent heat
+    /// required for evaporation is taken from the air, causing the air temperature to decrease.
+    ///
+    /// # Formula
+    /// The enthalpy of liquid water depends on whether it's above or below freezing:
+    ///
+    /// **Above freezing (SI):**
+    /// $$h_w = 4.186 \\times t_w \\quad \\text{[kJ/kg]}$$
+    ///
+    /// **Below freezing (SI):**
+    /// $$h_w = -333.4 + 2.1 \\times t_w \\quad \\text{[kJ/kg]}$$
+    ///
+    /// **IP units:** Similar relationships with appropriate constants.
+    ///
+    /// Energy balance: $$H_1 = H_0 + (W_1 - W_0) \\times h_w$$
+    pub fn humidify_liquid(
+        &mut self,
+        mda: f64,
+        water: f64,
+        t_water: f64,
+    ) -> Result<(), PsychroidError> {
+        let w0 = self.humidity_ratio;
+        let w1 = w0 + water / mda;
+        let h0 = self.specific_enthalpy();
+
+        // Calculate enthalpy of liquid water
+        let h_liquid = match self.unit {
+            UnitSystem::SI => {
+                if t_water >= 0.0 {
+                    4.186 * t_water // Above freezing
+                } else {
+                    -333.4 + 2.1 * t_water // Below freezing
+                }
+            }
+            UnitSystem::IP => {
+                if t_water >= 32.0 {
+                    1.0 * (t_water - 32.0) // Above freezing, relative to 32°F
+                } else {
+                    -143.4 + 0.502 * t_water // Below freezing (converted from SI formula)
+                }
+            }
+        };
+
+        // Energy balance: H1 = H0 + m_water * h_liquid
+        let h1 = h0 + (w1 - w0) * h_liquid;
+
+        // Calculate final temperature from the target enthalpy
+        self.humidity_ratio = w1;
+        self.t_dry_bulb = match self.unit {
+            UnitSystem::SI => (h1 - w1 * 2501.0) / (1.006 + 1.860 * w1),
+            UnitSystem::IP => (h1 - w1 * 1061.0) / (0.240 + 0.444 * w1),
+        };
+
+        self.relative_humidity()?;
+        Ok(())
+    }
+
+    /// Calculates the state change when adding water vapor at a given temperature to moist air.
+    ///
+    /// # Arguments
+    /// * `mda` - Mass flow rate of dry air \\(\\mathrm{kg/s}\\) (SI) or \\(\\mathrm{lb/h}\\) (IP)
+    /// * `water` - Mass of water vapor added \\(\\mathrm{kg_w/s}\\) (SI) or \\(\\mathrm{lb_w/h}\\) (IP)
+    /// * `t_vapor` - Temperature of the added water vapor \\(°C\\) (SI) or \\(°F\\) (IP)
+    ///
+    /// # Description
+    /// Calculates the temperature and humidity ratio changes when water vapor (steam) at a specific
+    /// temperature is added to an air stream. This is typical of steam humidification systems.
+    ///
+    /// # Formula
+    /// The enthalpy of water vapor is calculated using the same formula as saturated water vapor:
+    /// $$
+    /// \\begin{align}
+    /// h_v &= 2501.0 + 1.860 \\times t_v \\quad \\text{(SI, kJ/kg)} \\\\
+    /// h_v &= 1061.0 + 0.444 \\times t_v \\quad \\text{(IP, Btu/lb)}
+    /// \\end{align}
+    /// $$
+    ///
+    /// Energy balance: $$H_1 = H_0 + (W_1 - W_0) \\times h_v$$
+    pub fn humidify_vapor(
+        &mut self,
+        mda: f64,
+        water: f64,
+        t_vapor: f64,
+    ) -> Result<(), PsychroidError> {
+        let w0 = self.humidity_ratio;
+        let w1 = w0 + water / mda;
+        let h0 = self.specific_enthalpy();
+
+        // Calculate enthalpy of water vapor (same as saturated water vapor)
+        let h_vapor = match self.unit {
+            UnitSystem::SI => 2501.0 + 1.860 * t_vapor,
+            UnitSystem::IP => 1061.0 + 0.444 * t_vapor,
+        };
+
+        // Energy balance: H1 = H0 + m_water * h_vapor
+        let h1 = h0 + (w1 - w0) * h_vapor;
+
+        // Calculate final temperature from the target enthalpy
+        self.humidity_ratio = w1;
+        self.t_dry_bulb = match self.unit {
+            UnitSystem::SI => (h1 - w1 * 2501.0) / (1.006 + 1.860 * w1),
+            UnitSystem::IP => (h1 - w1 * 1061.0) / (0.240 + 0.444 * w1),
+        };
+
         self.relative_humidity()?;
         Ok(())
     }

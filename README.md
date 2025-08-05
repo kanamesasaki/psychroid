@@ -26,6 +26,14 @@ Psychrometric Chart Calculator (Psychroid-Web)
 - GitHub: https://github.com/kanamesasaki/psychroid-web
 - Web-site: https://psychroid.thermocraft.space/
 
+## Documentation
+
+API documentation can be opend with:
+
+```bash
+cargo doc --open
+```
+
 ## License
 
 This project is licensed under the MIT License.
